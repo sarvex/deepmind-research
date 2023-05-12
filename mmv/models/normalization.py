@@ -138,6 +138,6 @@ def get_normalize_fn(
     raise ValueError(f'Unrecognized `normalizer_name` {normalizer_name}.')
 
   normalizer_class = _NORMALIZER_NAME_TO_CLASS[normalizer_name]
-  normalizer_kwargs = normalizer_kwargs or dict()
+  normalizer_kwargs = normalizer_kwargs or {}
 
   return lambda *a, **k: normalizer_class(**normalizer_kwargs)(*a, **k)  # pylint: disable=unnecessary-lambda

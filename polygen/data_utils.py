@@ -141,17 +141,14 @@ def write_obj(vertices, faces, file_path, transpose=True, scale=1.):
     vertices = vertices[:, [1, 2, 0]]
   vertices *= scale
   if faces is not None:
-    if min(min(faces)) == 0:
-      f_add = 1
-    else:
-      f_add = 0
+    f_add = 1 if min(min(faces)) == 0 else 0
   with open(file_path, 'w') as f:
     for v in vertices:
-      f.write('v {} {} {}\n'.format(v[0], v[1], v[2]))
+      f.write(f'v {v[0]} {v[1]} {v[2]}\n')
     for face in faces:
       line = 'f'
       for i in face:
-        line += ' {}'.format(i + f_add)
+        line += f' {i + f_add}'
       line += '\n'
       f.write(line)
 
@@ -191,10 +188,9 @@ def flatten_faces(faces):
   """Converts from list of faces to flat face array with stopping indices."""
   if not faces:
     return np.array([0])
-  else:
-    l = [f + [-1] for f in faces[:-1]]
-    l += [faces[-1] + [-2]]
-    return np.array([item for sublist in l for item in sublist]) + 2  # pylint: disable=g-complex-comprehension
+  l = [f + [-1] for f in faces[:-1]]
+  l += [faces[-1] + [-2]]
+  return np.array([item for sublist in l for item in sublist]) + 2  # pylint: disable=g-complex-comprehension
 
 
 def unflatten_faces(flat_faces):
@@ -202,12 +198,13 @@ def unflatten_faces(flat_faces):
   def group(seq):
     g = []
     for el in seq:
-      if el == 0 or el == -1:
+      if el in [0, -1]:
         yield g
         g = []
       else:
         g.append(el - 1)
     yield g
+
   outputs = list(group(flat_faces - 1))[:-1]
   # Remove empty faces
   return [o for o in outputs if len(o) > 2]
@@ -346,9 +343,7 @@ def plot_meshes(mesh_list,
             [mesh['vertices_conditional'], mesh['vertices']], axis=0)
       else:
         face_verts = mesh['vertices']
-      collection = []
-      for f in mesh['faces']:
-        collection.append(face_verts[f])
+      collection = [face_verts[f] for f in mesh['faces']]
       plt_mesh = Poly3DCollection(collection)
       plt_mesh.set_edgecolor((0., 0., 0., 0.3))
       plt_mesh.set_facecolor((1, 0, 0, 0.2))
@@ -392,17 +387,16 @@ def plot_meshes(mesh_list,
 
     display_string = ''
     if mesh['faces'] is not None:
-      display_string += 'Num. faces: {}\n'.format(len(collection))
+      display_string += f'Num. faces: {len(collection)}\n'
     if mesh['vertices'] is not None:
       num_verts = mesh['vertices'].shape[0]
       if mesh['vertices_conditional'] is not None:
         num_verts += mesh['vertices_conditional'].shape[0]
-      display_string += 'Num. verts: {}\n'.format(num_verts)
+      display_string += f'Num. verts: {num_verts}\n'
     if mesh['class_name'] is not None:
-      display_string += 'Synset: {}'.format(mesh['class_name'])
+      display_string += f"Synset: {mesh['class_name']}"
     if mesh['pointcloud'] is not None:
-      display_string += 'Num. pointcloud: {}\n'.format(
-          mesh['pointcloud'].shape[0])
+      display_string += f"Num. pointcloud: {mesh['pointcloud'].shape[0]}\n"
     ax.text2D(0.05, 0.8, display_string, transform=ax.transAxes)
   plt.subplots_adjust(
       left=0., right=1., bottom=0., top=1., wspace=0.025, hspace=0.025)

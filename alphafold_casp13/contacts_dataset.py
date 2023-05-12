@@ -101,8 +101,7 @@ def shape(feature_name, num_residues, features=None):
   unused_dtype, raw_sizes = features[feature_name]
   replacements = {NUM_RES: num_residues}
 
-  sizes = [replacements.get(dimension, dimension) for dimension in raw_sizes]
-  return sizes
+  return [replacements.get(dimension, dimension) for dimension in raw_sizes]
 
 
 def dim(feature_name):
@@ -138,7 +137,7 @@ def _concat_or_zeros(tensor_list, axis, tensor_shape, name):
   """Concatenates the tensors if given, otherwise returns a tensor of zeros."""
   if tensor_list:
     return tf.concat(tensor_list, axis=axis, name=name)
-  return tf.zeros(tensor_shape, name=name + '_zeros')
+  return tf.zeros(tensor_shape, name=f'{name}_zeros')
 
 
 def parse_tfexample(raw_data, features):
@@ -168,11 +167,15 @@ def parse_tfexample(raw_data, features):
     new_shape = shape(feature_name=k, num_residues=num_residues)
     # Make sure the feature we are reshaping is not empty.
     assert_non_empty = tf.assert_greater(
-        tf.size(v), 0, name='assert_%s_non_empty' % k,
+        tf.size(v),
+        0,
+        name=f'assert_{k}_non_empty',
         message='The feature %s is not set in the tf.Example. Either do not '
-        'request the feature or use a tf.Example that has the feature set.' % k)
+        'request the feature or use a tf.Example that has the feature set.' %
+        k,
+    )
     with tf.control_dependencies([assert_non_empty]):
-      parsed_features[k] = tf.reshape(v, new_shape, name='reshape_%s' % k)
+      parsed_features[k] = tf.reshape(v, new_shape, name=f'reshape_{k}')
 
   return parsed_features
 
@@ -234,7 +237,7 @@ def normalize_from_stats_file(
 
   for feature in copy_unnormalized:
     if feature in features:
-      features[feature + '_unnormalized'] = features[feature]
+      features[f'{feature}_unnormalized'] = features[feature]
 
   range_epsilon = 1e-12
   for key, value in features.items():
@@ -249,8 +252,9 @@ def normalize_from_stats_file(
           train_range > range_epsilon, value / train_range, value)
       features[key] = value
     else:
-      raise ValueError('Unknown normalization mode %s for feature %s.'
-                       % (feature_normalization[key], key))
+      raise ValueError(
+          f'Unknown normalization mode {feature_normalization[key]} for feature {key}.'
+      )
   return features
 
 
@@ -291,29 +295,27 @@ def convert_to_legacy_proteins_dataset_format(
   Raises:
     ValueError: If the feature size is invalid.
   """
-  tensors_1d = []
   tensors_2d = []
   tensors_2d_diagonal = []
+  tensors_1d = []
   for key in desired_features:
     # Determine if the feature is 1D or 2D.
     feature_dim = dim(key)
     if feature_dim == FeatureType.ONE_DIM:
       tensors_1d.append(tf.cast(features[key], dtype=tf.float32))
     elif feature_dim == FeatureType.TWO_DIM:
-      if key not in features:
-        if not(key + '_cropped' in features and key + '_diagonal' in features):
-          raise ValueError(
-              'The 2D feature %s is not in the features dictionary and neither '
-              'are its cropped and diagonal versions.' % key)
-        else:
-          tensors_2d.append(
-              tf.cast(features[key + '_cropped'], dtype=tf.float32))
-          tensors_2d_diagonal.append(
-              tf.cast(features[key + '_diagonal'], dtype=tf.float32))
-      else:
+      if key in features:
         tensors_2d.append(tf.cast(features[key], dtype=tf.float32))
+      elif f'{key}_cropped' not in features or f'{key}_diagonal' not in features:
+        raise ValueError(
+            f'The 2D feature {key} is not in the features dictionary and neither are its cropped and diagonal versions.'
+        )
+      else:
+        tensors_2d.append(tf.cast(features[f'{key}_cropped'], dtype=tf.float32))
+        tensors_2d_diagonal.append(
+            tf.cast(features[f'{key}_diagonal'], dtype=tf.float32))
     else:
-      raise ValueError('Unexpected FeatureType returned: %s' % str(feature_dim))
+      raise ValueError(f'Unexpected FeatureType returned: {str(feature_dim)}')
 
   # Determine num_res from the sequence as seq_length was possibly normalized.
   num_res = tf.strings.length(features['sequence'])[0]
@@ -343,11 +345,11 @@ def convert_to_legacy_proteins_dataset_format(
 
   scalar_tensors = []
   for key in desired_scalars:
-    scalar_tensors.append(features.get(key + '_unnormalized', features[key]))
+    scalar_tensors.append(features.get(f'{key}_unnormalized', features[key]))
 
   target_tensors = []
   for key in desired_targets:
-    target_tensors.append(features.get(key + '_unnormalized', features[key]))
+    target_tensors.append(features.get(f'{key}_unnormalized', features[key]))
 
   scalar_class = collections.namedtuple('_ScalarClass', desired_scalars)
   target_class = collections.namedtuple('_TargetClass', desired_targets)

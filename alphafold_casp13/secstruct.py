@@ -80,7 +80,7 @@ def save_secstructs(dump_dir_path, name, index, sequence, probs,
       D is probability dimension (usually 3).
     label: A label for the file.
   """
-  filename = os.path.join(dump_dir_path, '%s.ss2' % name)
+  filename = os.path.join(dump_dir_path, f'{name}.ss2')
   if index is not None:
     filename = os.path.join(dump_dir_path, '%s_%04d.ss2' % (name, index))
   with tf.io.gfile.GFile(filename, 'w') as gf:

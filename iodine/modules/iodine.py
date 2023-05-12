@@ -148,7 +148,7 @@ class IODINE(snt.AbstractModule):
       self._sg.guard(self.prior, "K, Z")
       with tf.variable_scope("preprocess"):
         self._layernorms = {
-            name: snt.LayerNorm(name="layer_norm_" + name)
+            name: snt.LayerNorm(name=f"layer_norm_{name}")
             for name in self.preprocess
         }
 
@@ -177,25 +177,22 @@ class IODINE(snt.AbstractModule):
 
     iterations["recons_loss"] = [tf.reduce_mean(re) for re in iterations["re"]]
 
-    total_rec_loss = sum([
+    total_rec_loss = sum(
         w * re
-        for w, re in zip(self.iter_loss_weights, iterations["recons_loss"])
-    ])
-    total_kl_loss = sum([
+        for w, re in zip(self.iter_loss_weights, iterations["recons_loss"]))
+    total_kl_loss = sum(
         w * tf.reduce_mean(tf.reduce_sum(kl, axis=1))
-        for w, kl in zip(self.iter_loss_weights, iterations["kl"])
-    ])
+        for w, kl in zip(self.iter_loss_weights, iterations["kl"]))
 
     total_loss = total_rec_loss + total_kl_loss
 
     scalars = {
         "loss/kl":
-            sum([
-                tf.reduce_mean(tf.reduce_sum(kl, axis=1))
-                for kl in iterations["kl"]
-            ]),
+        sum(
+            tf.reduce_mean(tf.reduce_sum(kl, axis=1))
+            for kl in iterations["kl"]),
         "loss/recons":
-            total_rec_loss,
+        total_rec_loss,
     }
 
     if self.factor_evaluator:
@@ -215,10 +212,10 @@ class IODINE(snt.AbstractModule):
       )
       total_loss += factor_loss
       scalars["factor/loss"] = factor_loss
-      scalars.update({"factor/" + k: v for k, v in factor_scalars.items()})
+      scalars |= {f"factor/{k}": v for k, v in factor_scalars.items()}
     scalars["loss/total"] = total_loss
 
-    scalars.update(self._get_monitored_scalars(x_dist, data))
+    scalars |= self._get_monitored_scalars(x_dist, data)
     logging.info(self._sg.dims)
     return total_loss, scalars, iterations
 
@@ -472,8 +469,7 @@ class IODINE(snt.AbstractModule):
     elif isinstance(iter_loss_weight, (tuple, list)):
       iter_weights = [float(w) for w in iter_loss_weight]
     else:
-      raise ValueError("Unknown iter_loss_weight type {}.".format(
-          repr(iter_loss_weight)))
+      raise ValueError(f"Unknown iter_loss_weight type {repr(iter_loss_weight)}.")
     assert len(iter_weights) == (self.num_iters + 1), iter_loss_weight
     return iter_weights
 
@@ -489,10 +485,7 @@ class IODINE(snt.AbstractModule):
 
   def _get_image_for_iter(self, images, t):
     """Return current frame or first image."""
-    if self.sequential:
-      return images[:, t:t + 1]
-    else:
-      return images[:, :1]
+    return images[:, t:t + 1] if self.sequential else images[:, :1]
 
   @staticmethod
   def _get_mask_posterior(out_dist, img):
@@ -574,23 +567,21 @@ class IODINE(snt.AbstractModule):
     return final_inputs
 
   def _apply_preprocessing(self, name, val):
-    if name in self.preprocess:
-      if self._sg.matches(val, "B, K, _z"):
-        flat_val = tf.reshape(val, self._sg["B*K"] + [-1])
-      elif self._sg.matches(val, "B, 1, _z"):
-        flat_val = val[:, 0, :]
-      elif self._sg.matches(val, "B, K, H, W, _c"):
-        flat_val = tf.reshape(val, self._sg["B*K, H*W"] + [-1])
-      elif self._sg.matches(val, "B, 1, H, W, _c"):
-        flat_val = tf.reshape(val, self._sg["B, H*W"] + [-1])
-      else:
-        raise ValueError("Cannot handle shape {}".format(
-            val.get_shape().as_list()))
-      ln = self._layernorms[name]
-      norm_val = ln(flat_val)
-      return tf.reshape(norm_val, val.shape.as_list())
-    else:
+    if name not in self.preprocess:
       return val
+    if self._sg.matches(val, "B, K, _z"):
+      flat_val = tf.reshape(val, self._sg["B*K"] + [-1])
+    elif self._sg.matches(val, "B, 1, _z"):
+      flat_val = val[:, 0, :]
+    elif self._sg.matches(val, "B, K, H, W, _c"):
+      flat_val = tf.reshape(val, self._sg["B*K, H*W"] + [-1])
+    elif self._sg.matches(val, "B, 1, H, W, _c"):
+      flat_val = tf.reshape(val, self._sg["B, H*W"] + [-1])
+    else:
+      raise ValueError(f"Cannot handle shape {val.get_shape().as_list()}")
+    ln = self._layernorms[name]
+    norm_val = ln(flat_val)
+    return tf.reshape(norm_val, val.shape.as_list())
 
   def _get_coord_channels(self):
     if self.coord_type == "linear":
@@ -608,10 +599,9 @@ class IODINE(snt.AbstractModule):
       x_basis = tf.cos(valx * freqs[None, None, None, None, :, None])
       y_basis = tf.cos(valy * freqs[None, None, None, None, None, :])
       xy_basis = tf.reshape(x_basis * y_basis, self._sg["1, 1, H, W, F*F"])
-      coords = tf.tile(xy_basis, self._sg["B, 1, 1, 1, 1"])[..., 1:]
-      return coords
+      return tf.tile(xy_basis, self._sg["B, 1, 1, 1, 1"])[..., 1:]
     else:
-      raise KeyError('Unknown coord_type: "{}"'.format(self.coord_type))
+      raise KeyError(f'Unknown coord_type: "{self.coord_type}"')
 
   def _raw_kl(self, z_dist):
     return tfd.kl_divergence(z_dist, self.prior)

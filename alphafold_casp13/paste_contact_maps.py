@@ -43,9 +43,7 @@ def generate_domains(target, sequence, crop_sizes, crop_step):
 
   windows = [int(x) for x in crop_sizes.split(",")]
   num_residues = len(sequence)
-  domains = []
-  domains.append({"name": target, "description": (1, num_residues)})
-
+  domains = [{"name": target, "description": (1, num_residues)}]
   for window in windows:
     starts = list(range(0, num_residues - window, crop_step))
     # Append a last crop to ensure we get all the way to the end of the
@@ -102,13 +100,13 @@ def paste_distance_histograms(
 
   targets = tf.io.gfile.glob(os.path.join(input_dir, "*.pickle"))
   targets = [os.path.splitext(os.path.basename(t))[0] for t in targets]
-  targets = set([t.split("-")[0] for t in targets])
+  targets = {t.split("-")[0] for t in targets}
   logging.info("Pasting distance histograms for %d targets", len(targets))
 
   for target in sorted(targets):
     logging.info("%s as chain", target)
 
-    chain_pickle_path = os.path.join(input_dir, "%s.pickle" % target)
+    chain_pickle_path = os.path.join(input_dir, f"{target}.pickle")
     distance_histogram_dict = parsers.parse_distance_histogram_dict(
         chain_pickle_path)
 
@@ -135,7 +133,7 @@ def paste_distance_histograms(
 
       crop_start, crop_end = domain["description"]
 
-      domain_pickle_path = os.path.join(input_dir, "%s.pickle" % domain["name"])
+      domain_pickle_path = os.path.join(input_dir, f'{domain["name"]}.pickle')
 
       weight = weights.get(domain["name"], 1e9)
 
@@ -147,10 +145,9 @@ def paste_distance_histograms(
       for field in ["num_bins", "min_range", "max_range"]:
         if domain_distance_histogram_dict[field] != distance_histogram_dict[
             field]:
-          raise ValueError("Field {} does not match {} {}".format(
-              field,
-              domain_distance_histogram_dict[field],
-              distance_histogram_dict[field]))
+          raise ValueError(
+              f"Field {field} does not match {domain_distance_histogram_dict[field]} {distance_histogram_dict[field]}"
+          )
       weight_matrix_size = crop_end - crop_start + 1
       weight_matrix = np.ones(
           (weight_matrix_size, weight_matrix_size), dtype=np.float32) * weight
@@ -164,8 +161,7 @@ def paste_distance_histograms(
     combined_cmap /= counter_map
 
     # Write out full-chain cmap for folding.
-    output_chain_pickle_path = os.path.join(output_dir,
-                                            "{}.pickle".format(target))
+    output_chain_pickle_path = os.path.join(output_dir, f"{target}.pickle")
 
     logging.info("Writing to %s", output_chain_pickle_path)
 
@@ -179,7 +175,7 @@ def paste_distance_histograms(
     # Compute the contact map and save it as an RR file.
     contact_probs = distogram_io.contact_map_from_distogram(
         distance_histogram_dict)
-    rr_path = os.path.join(output_dir, "%s.rr" % target)
+    rr_path = os.path.join(output_dir, f"{target}.rr")
     distogram_io.save_rr_file(
         filename=rr_path,
         probs=contact_probs,

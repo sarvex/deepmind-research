@@ -78,10 +78,7 @@ def _write_blob_to_destination(blob, task_root, ignore_existing=True):
 
 def main(unused_argv):
   bucket = _get_gcs_bucket()
-  if FLAGS.payload == 'data':
-    relative_paths = DATA_RELATIVE_PATHS
-  else:
-    relative_paths = (None,)
+  relative_paths = DATA_RELATIVE_PATHS if FLAGS.payload == 'data' else (None, )
   for relative_path in relative_paths:
     if relative_path is None:
       relative_path = str(_get_gcs_root())

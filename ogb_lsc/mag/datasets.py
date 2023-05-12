@@ -271,8 +271,7 @@ def _get_one_hot_year_representation(
   is_paper = one_hot_type[..., 0]
   bucket_id_for_non_paper = len(bucket_edges) + 1
   bucket_id = np.where(is_paper, year_id, bucket_id_for_non_paper)
-  one_hot_year = _np_one_hot(bucket_id, len(bucket_edges) + 2)
-  return one_hot_year
+  return _np_one_hot(bucket_id, len(bucket_edges) + 2)
 
 
 def _add_one_hot_features_to_batch(batch: Batch) -> Batch:

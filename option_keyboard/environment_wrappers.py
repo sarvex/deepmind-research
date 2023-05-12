@@ -293,8 +293,7 @@ def _discretize_actions(num_actions_per_dim,
   elif num_actions_per_dim == 0:
     discretized_actions = np.eye(action_space_dim)
   else:
-    raise ValueError(
-        "Unsupported num_actions_per_dim {}".format(num_actions_per_dim))
+    raise ValueError(f"Unsupported num_actions_per_dim {num_actions_per_dim}")
 
   discretized_actions = np.array(discretized_actions)
 

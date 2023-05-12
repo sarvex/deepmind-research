@@ -109,7 +109,7 @@ class GatedLinearNetworkTest(parameterized.TestCase):
     # Test shapes of parameters layer-wise.
     layer_input_size = input_size
     for layer_idx, output_size in enumerate(self._output_sizes):
-      name = "{}/~/{}_layer_{}".format(self._name, self._name, layer_idx)
+      name = f"{self._name}/~/{self._name}_layer_{layer_idx}"
       weights = gln_params[name]["weights"]
       expected_shape = (output_size, 2**self._context_dim, layer_input_size + 1)
       self.assertEqual(weights.shape, expected_shape)
@@ -153,7 +153,7 @@ class GatedLinearNetworkTest(parameterized.TestCase):
 
       # Check updated weights layer-wise.
       for layer_idx in range(len(self._output_sizes)):
-        name = "{}/~/{}_layer_{}".format(self._name, self._name, layer_idx)
+        name = f"{self._name}/~/{self._name}_layer_{layer_idx}"
 
         initial_weights = initial_params[name]["weights"]
         new_weights = gln_params[name]["weights"]
@@ -176,7 +176,7 @@ class GatedLinearNetworkTest(parameterized.TestCase):
     # Initialize network.
     gln_params, gln_state = self._batch_init_fn(
         next(self._rng), inputs, side_info)
-    test_layer = "{}/~/{}_layer_0".format(self._name, self._name)
+    test_layer = f"{self._name}/~/{self._name}_layer_0"
 
     for _ in range(10):
 

@@ -112,18 +112,17 @@ class ResNetTorso(hk.Module):
 
     self.block_groups = []
     strides = (1, 2, 2, 2)
-    for i in range(4):
-      self.block_groups.append(
-          hk.nets.ResNet.BlockGroup(
-              channels=width_multiplier * channels_per_group[i],
-              num_blocks=blocks_per_group[i],
-              stride=strides[i],
-              bn_config=bn_config,
-              resnet_v2=resnet_v2,
-              bottleneck=bottleneck,
-              use_projection=use_projection[i],
-              name='block_group_%d' % (i)))
-
+    self.block_groups.extend(
+        hk.nets.ResNet.BlockGroup(
+            channels=width_multiplier * channels_per_group[i],
+            num_blocks=blocks_per_group[i],
+            stride=strides[i],
+            bn_config=bn_config,
+            resnet_v2=resnet_v2,
+            bottleneck=bottleneck,
+            use_projection=use_projection[i],
+            name='block_group_%d' % (i),
+        ) for i in range(4))
     if self.resnet_v2:
       self.final_batchnorm = hk.BatchNorm(name='final_batchnorm', **bn_config)
 

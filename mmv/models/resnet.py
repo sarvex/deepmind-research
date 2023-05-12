@@ -277,17 +277,16 @@ class ResNetV2(hk.Module):
       self._initial_conv = hk.remat(self._initial_conv)
 
     self._block_groups = []
-    for i in range(4):
-      self._block_groups.append(
-          ResNetUnit(
-              channels=self._channels[i] * self._width_mult,
-              num_blocks=self._num_blocks[i],
-              block_module=self._block_module,
-              stride=self._strides[i],
-              normalize_fn=self._normalize_fn,
-              name='block_group_%d' % i,
-              remat=remat))
-
+    self._block_groups.extend(
+        ResNetUnit(
+            channels=self._channels[i] * self._width_mult,
+            num_blocks=self._num_blocks[i],
+            block_module=self._block_module,
+            stride=self._strides[i],
+            normalize_fn=self._normalize_fn,
+            name='block_group_%d' % i,
+            remat=remat,
+        ) for i in range(4))
     if num_classes is not None:
       self._logits_layer = hk.Linear(
           output_size=num_classes, w_init=jnp.zeros, name='logits')
@@ -321,9 +320,4 @@ class ResNetV2(hk.Module):
     net = jnp.mean(net, axis=[1, 2])
 
     assert self._final_endpoint == 'output'
-    if self._num_classes is None:
-      # If num_classes was None, we just return the output
-      # of the last block, without fully connected layer.
-      return net
-
-    return self._logits_layer(net)
+    return net if self._num_classes is None else self._logits_layer(net)

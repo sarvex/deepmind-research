@@ -58,36 +58,37 @@ class TicTacToe(jaco_arm_board_game.JacoArmBoardGame):
     return 0.05
 
   def after_substep(self, physics, random_state):
-    if not self._made_move_this_step:
-      indices = self._board.get_contact_indices(physics)
-      if not indices:
-        return
-      row, col = indices
-      valid_move = self._game_logic.apply(
-          player=jaco_arm_board_game.SELF,
-          action=tic_tac_toe_logic.SingleMarkerAction(row=row, col=col))
-      if valid_move:
-        self._made_move_this_step = True
-        marker_pos = self._board.get_contact_pos(
-            physics=physics, row=row, col=col)
-        self._markers.mark(physics=physics, player_id=jaco_arm_board_game.SELF,
+    if self._made_move_this_step:
+      return
+    indices = self._board.get_contact_indices(physics)
+    if not indices:
+      return
+    row, col = indices
+    if valid_move := self._game_logic.apply(
+        player=jaco_arm_board_game.SELF,
+        action=tic_tac_toe_logic.SingleMarkerAction(row=row, col=col),
+    ):
+      self._made_move_this_step = True
+      marker_pos = self._board.get_contact_pos(
+          physics=physics, row=row, col=col)
+      self._markers.mark(physics=physics, player_id=jaco_arm_board_game.SELF,
+                         pos=marker_pos)
+      if not self._game_logic.is_game_over:
+        opponent_move = self._game_opponent.policy(
+            game_logic=self._game_logic, random_state=random_state)
+        assert opponent_move
+        assert self._game_logic.apply(player=jaco_arm_board_game.OPPONENT,
+                                      action=opponent_move)
+        marker_pos = self._board.sample_pos_inside_touch_sensor(
+            physics=physics,
+            random_state=random_state,
+            row=opponent_move.row,
+            col=opponent_move.col)
+        self._markers.mark(physics=physics,
+                           player_id=jaco_arm_board_game.OPPONENT,
                            pos=marker_pos)
-        if not self._game_logic.is_game_over:
-          opponent_move = self._game_opponent.policy(
-              game_logic=self._game_logic, random_state=random_state)
-          assert opponent_move
-          assert self._game_logic.apply(player=jaco_arm_board_game.OPPONENT,
-                                        action=opponent_move)
-          marker_pos = self._board.sample_pos_inside_touch_sensor(
-              physics=physics,
-              random_state=random_state,
-              row=opponent_move.row,
-              col=opponent_move.col)
-          self._markers.mark(physics=physics,
-                             player_id=jaco_arm_board_game.OPPONENT,
-                             pos=marker_pos)
-          if self._reset_arm_after_move:
-            self._tcp_initializer(physics, random_state)
+        if self._reset_arm_after_move:
+          self._tcp_initializer(physics, random_state)
 
 
 @registry.add(tags.EASY, tags.FEATURES)
@@ -97,8 +98,9 @@ def tic_tac_toe_markers_features(**unused_kwargs):
 
 @registry.add(tags.MED, tags.FEATURES)
 def tic_tac_toe_mixture_opponent_markers_features(mixture_p=0.25):
-  print('Creating tictactoe task with random/optimal opponent mixture, p={}'
-        .format(mixture_p))
+  print(
+      f'Creating tictactoe task with random/optimal opponent mixture, p={mixture_p}'
+  )
   return TicTacToe(
       observation_settings=observations.PERFECT_FEATURES,
       opponent=tic_tac_toe_logic.TicTacToeMixtureOpponent(mixture_p))

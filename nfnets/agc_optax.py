@@ -28,7 +28,7 @@ def unitwise_norm(x):
   if len(jnp.squeeze(x).shape) <= 1:  # Scalars and vectors
     axis = None
     keepdims = False
-  elif len(x.shape) in [2, 3]:  # Linear layers of shape IO or multihead linear
+  elif len(x.shape) in {2, 3}:  # Linear layers of shape IO or multihead linear
     axis = 0
     keepdims = True
   elif len(x.shape) == 4:  # Conv kernels of shape HWIO

@@ -157,14 +157,10 @@ def load(split: Split,
 
 def _to_tfds_split(split: Split) -> tfds.Split:
   """Returns the TFDS split appropriately sharded."""
-  # NOTE: Imagenet did not release labels for the test split used in the
-  # competition, we consider the VALID split the TEST split and reserve
-  # 10k images from TRAIN for VALID.
   if split in (Split.TRAIN, Split.TRAIN_AND_VALID, Split.VALID):
     return tfds.Split.TRAIN
-  else:
-    assert split == Split.TEST
-    return tfds.Split.VALIDATION
+  assert split == Split.TEST
+  return tfds.Split.VALIDATION
 
 
 def _shard(split: Split, shard_index: int, num_shards: int) -> Tuple[int, int]:

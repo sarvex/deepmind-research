@@ -469,22 +469,22 @@ class Optimizer(utils.Stateful):
     rho = jnp.nan
 
     # Statistics with useful information
-    stats = dict()
-    stats["step"] = self.step_counter
-    stats["loss"] = loss
-    stats["learning_rate"] = -coefficients[0]
-    stats["momentum"] = coefficients[1]
-    stats["damping"] = damping
-    stats["rho"] = rho
+    stats = {
+        "step": self.step_counter,
+        "loss": loss,
+        "learning_rate": -coefficients[0],
+        "momentum": coefficients[1],
+        "damping": damping,
+        "rho": rho,
+    }
     if self.value_func_has_aux:
       stats["aux"] = aux
     self.step_counter = self.step_counter + 1
 
     if self.value_func_has_state:
       return params, self.pop_state(), new_func_state, stats
-    else:
-      assert new_func_state is None
-      return params, self.pop_state(), stats
+    assert new_func_state is None
+    return params, self.pop_state(), stats
 
   def init(
       self,

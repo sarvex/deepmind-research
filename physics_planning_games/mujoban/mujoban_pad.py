@@ -24,16 +24,15 @@ import numpy as np
 def _get_activator_box(pad_xpos, pad_size, boxes, tolerance=0.0):
   """Returns the activator box, if any. Otherwise returns None."""
   # Ignore the height
-  pad_min = pad_xpos[0:2] - pad_size[0:2]
-  pad_max = pad_xpos[0:2] + pad_size[0:2]
+  pad_min = pad_xpos[:2] - pad_size[:2]
+  pad_max = pad_xpos[:2] + pad_size[:2]
   for box in boxes:
-    box_xpos = np.array(box.xpos[0:2])
-    box_size = np.array(box.size[0:2])
+    box_xpos = np.array(box.xpos[:2])
+    box_size = np.array(box.size[:2])
 
     min_ = pad_min + box_size - tolerance
     max_ = pad_max - box_size + tolerance
-    in_range = np.logical_and(box_xpos >= min_, box_xpos <= max_).all()
-    if in_range:
+    if in_range := np.logical_and(box_xpos >= min_, box_xpos <= max_).all():
       return box
   # No activator box was found
   return None
@@ -92,14 +91,12 @@ class MujobanPad(composer.Entity):
     self._update_activation(physics)
 
   def _update_activation(self, physics):
-    # Note: we get the physically bound box, not an object from self._boxes.
-    # That's because the generator expression below generates bound objects.
-    box = _get_activator_box(
+    if box := _get_activator_box(
         pad_xpos=np.array(physics.bind(self._site).xpos),
         pad_size=np.array(physics.bind(self._site).size),
         boxes=(physics.bind(box.geom) for box in self._boxes),
-        tolerance=self._detection_tolerance,)
-    if box:
+        tolerance=self._detection_tolerance,
+    ):
       self._activated = True
       self._activator = box
     else:

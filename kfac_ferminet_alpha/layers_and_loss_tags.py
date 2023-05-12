@@ -32,7 +32,7 @@ class LossTag(jax_core.Primitive):
   multiple_results = True
 
   def __init__(self, cls, num_inputs: int, num_targets: int = 1):
-    super().__init__(cls.__name__ + "_tag")
+    super().__init__(f"{cls.__name__}_tag")
     self._cls = cls
     self._num_inputs = num_inputs
     self._num_targets = num_targets
@@ -210,20 +210,14 @@ dense_tag = LayerTag(name="dense_tag", num_inputs=1, num_outputs=1)
 
 
 def register_dense(y, x, w, b=None):
-  if b is None:
-    return dense_tag.bind(y, x, w)
-  return dense_tag.bind(y, x, w, b)
+  return dense_tag.bind(y, x, w) if b is None else dense_tag.bind(y, x, w, b)
 
 
 def dense_func(x, params):
   """Example of a dense layer function."""
   w = params[0]
   y = jnp.matmul(x, w)
-  if len(params) == 1:
-    # No bias
-    return y
-  # Add bias
-  return y + params[1]
+  return y if len(params) == 1 else y + params[1]
 
 
 def dense_tagging(jaxpr, inverse_map, values_map):
@@ -260,11 +254,7 @@ def conv2d_func(x, params):
       window_strides=(2, 2),
       padding="SAME",
       dimension_numbers=("NHWC", "HWIO", "NHWC"))
-  if len(params) == 1:
-    # No bias
-    return y
-  # Add bias
-  return y + params[1][None, None, None]
+  return y if len(params) == 1 else y + params[1][None, None, None]
 
 
 def conv2d_tagging(jaxpr, inverse_map, values_map):

@@ -32,10 +32,7 @@ def autoencoder_aux(all_aux, all_params, x_in):
     h_out = common.fully_connected_layer(params, h_in + aux[1]) + aux[0]
     layers_values.append((h_out, h_in))
     # Last layer does not have a nonlinearity
-    if i % 4 != 3:
-      h_in = jnp.tanh(h_out)
-    else:
-      h_in = h_out
+    h_in = jnp.tanh(h_out) if i % 4 != 3 else h_out
   h1, _ = loss_functions.register_normal_predictive_distribution(h_in, x_in)
   h2, _ = loss_functions.register_normal_predictive_distribution(
       h_in, targets=x_in, weight=0.1)
@@ -171,13 +168,13 @@ class TestTracer(jtu.JaxTestCase):
     aux_tangents, p_tangents = vjp(summed_h_tangents)
     layers_info = []
     for aux_p, p_p in zip(layer_vals, params):
-      info = dict()
+      info = {}
       info["outputs"] = (aux_p[0],)
       info["inputs"] = (aux_p[1],)
       info["params"] = (p_p[0], p_p[1])
       layers_info.append(info)
     for i, (aux_t, p_t) in enumerate(zip(aux_tangents, p_tangents)):
-      info = dict()
+      info = {}
       info["outputs_tangent"] = (aux_t[0],)
       info["inputs_tangent"] = (aux_t[1],)
       info["params_tangent"] = (p_t[0], p_t[1])

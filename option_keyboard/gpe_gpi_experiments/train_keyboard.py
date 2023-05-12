@@ -36,19 +36,19 @@ flags.DEFINE_string("policy_weights_name", None,
 def main(argv):
   del argv
 
-  all_policy_weights = {
-      "1": [1., 0.],
-      "2": [0., 1.],
-      "3": [1., -1.],
-      "4": [-1., 1.],
-      "5": [1., 1.],
-  }
   if FLAGS.policy_weights_name:
+    all_policy_weights = {
+        "1": [1., 0.],
+        "2": [0., 1.],
+        "3": [1., -1.],
+        "4": [-1., 1.],
+        "5": [1., 1.],
+    }
     policy_weights = np.array(
         [all_policy_weights[v] for v in FLAGS.policy_weights_name])
     num_episodes = ((FLAGS.num_pretrain_episodes // 2) *
                     max(2, len(policy_weights)))
-    export_path = FLAGS.export_path + "_" + FLAGS.policy_weights_name
+    export_path = f"{FLAGS.export_path}_{FLAGS.policy_weights_name}"
   else:
     policy_weights = None
     num_episodes = FLAGS.num_pretrain_episodes

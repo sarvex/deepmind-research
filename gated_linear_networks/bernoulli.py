@@ -67,9 +67,7 @@ class GatedLinearNetwork(base.GatedLinearNetwork):
                                                        hyperplane_bias)
     used_weights = weights[weight_index]
     inputs = rlax.logit(jnp.clip(inputs, GLN_EPS, 1. - GLN_EPS))
-    prediction = rlax.sigmoid(jnp.dot(used_weights, inputs))
-
-    return prediction
+    return rlax.sigmoid(jnp.dot(used_weights, inputs))
 
   @staticmethod
   def _update_fn(

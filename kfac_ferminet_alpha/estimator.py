@@ -94,7 +94,7 @@ class CurvatureEstimator(utils.Stateful):
     # Figure out the mapping from layer
     self.layer_tag_to_block_cls = curvature_blocks.copy_default_tag_to_block()
     if layer_tag_to_block_cls is None:
-      layer_tag_to_block_cls = dict()
+      layer_tag_to_block_cls = {}
     layer_tag_to_block_cls = dict(**layer_tag_to_block_cls)
     self.layer_tag_to_block_cls.update(layer_tag_to_block_cls)
 
@@ -103,11 +103,11 @@ class CurvatureEstimator(utils.Stateful):
     self._jaxpr = jax.make_jaxpr(self.tagged_func)(*func_args).jaxpr
     self._layer_tags, self._loss_tags = tracer.extract_tags(self._jaxpr)
     self.blocks = collections.OrderedDict()
-    counters = dict()
+    counters = {}
     for eqn in self._layer_tags:
       cls = self.layer_tag_to_block_cls[eqn.primitive.name]
       c = counters.get(cls.__name__, 0)
-      self.blocks[cls.__name__ + "_" + str(c)] = cls(eqn)
+      self.blocks[f"{cls.__name__}_{str(c)}"] = cls(eqn)
       counters[cls.__name__] = c + 1
 
   @property
@@ -143,13 +143,13 @@ class CurvatureEstimator(utils.Stateful):
     """Reverses the function self.vectors_to_blocks."""
     in_vars = jax.tree_unflatten(self._in_tree, self._jaxpr.invars)
     params_vars = in_vars[self.params_index]
-    assigned_dict = dict()
+    assigned_dict = {}
     for eqn, block_values in zip(self._layer_tags, per_block_vectors):
       if eqn.primitive.name == "generic_tag":
         block_params = eqn.invars
       else:
         block_params = eqn.primitive.split_all_inputs(eqn.invars)[2]
-      assigned_dict.update(zip(block_params, block_values))
+      assigned_dict |= zip(block_params, block_values)
     params_vars_flat, params_tree = jax.tree_flatten(params_vars)
     params_values_flat = [assigned_dict[v] for v in params_vars_flat]
     assert len(params_vars_flat) == len(params_values_flat)
@@ -290,8 +290,7 @@ class CurvatureEstimator(utils.Stateful):
       #     estimate_k = 1.0 * estimate_k-1 + (ema_new/n) * (n*estimate_index_k)
       #     weight_k = 1.0 * weight_k-1 + (ema_new/n)
       # Which is mathematically equivalent to the original version.
-      zero_tangents = jax.tree_map(jnp.zeros_like,
-                                   list(loss.inputs for loss in losses))
+      zero_tangents = jax.tree_map(jnp.zeros_like, [loss.inputs for loss in losses])
       if self.estimation_mode == "fisher_exact":
         num_indices = [
             (l, int(np.prod(l.fisher_factor_inner_shape[1:]))) for l in losses
@@ -334,7 +333,6 @@ class CurvatureEstimator(utils.Stateful):
                                               pmap_axis_name)
     if state is None:
       return None
-    else:
-      state = self.pop_state()
-      self.set_state(old_state)
-      return state
+    state = self.pop_state()
+    self.set_state(old_state)
+    return state

@@ -109,12 +109,13 @@ class GAN(object):
         discriminator_loss=disc_loss, generator_loss=generator_loss,
         optimisation_cost=optimisation_cost)
 
-    debug_ops = {}
-    debug_ops['disc_data_loss'] = disc_data_loss
-    debug_ops['disc_sample_loss'] = disc_sample_loss
-    debug_ops['disc_loss'] = disc_loss
-    debug_ops['gen_loss'] = generator_loss
-    debug_ops['opt_cost'] = optimisation_cost
+    debug_ops = {
+        'disc_data_loss': disc_data_loss,
+        'disc_sample_loss': disc_sample_loss,
+        'disc_loss': disc_loss,
+        'gen_loss': generator_loss,
+        'opt_cost': optimisation_cost,
+    }
     if hasattr(self, 'z_step_size'):
       debug_ops['z_step_size'] = self.z_step_size
 
@@ -125,10 +126,10 @@ class GAN(object):
     """Generator loss as latent optimisation's error function."""
     del data
     disc_sample_logits = self._discriminator(samples)
-    generator_loss = utils.cross_entropy_loss(
+    return utils.cross_entropy_loss(
         disc_sample_logits,
-        tf.ones(tf.shape(disc_sample_logits[:, 0]), dtype=tf.int32))
-    return generator_loss
+        tf.ones(tf.shape(disc_sample_logits[:, 0]), dtype=tf.int32),
+    )
 
   def _build_optimization_components(
       self, generator_loss=None, discriminator_loss=None,
@@ -157,12 +158,11 @@ class GAN(object):
 
 
 def _get_and_check_variables(module):
-  module_variables = module.get_all_variables()
-  if not module_variables:
+  if module_variables := module.get_all_variables():
+    # TensorFlow optimizers require lists to be passed in.
+    return list(module_variables)
+  else:
     raise ValueError(
-        'Module {} has no variables! Variables needed for training.'.format(
-            module.module_name))
-
-  # TensorFlow optimizers require lists to be passed in.
-  return list(module_variables)
+        f'Module {module.module_name} has no variables! Variables needed for training.'
+    )
 

@@ -37,7 +37,7 @@ def _parse(proto, meta):
     if field['type'] == 'static':
       data = tf.tile(data, [meta['trajectory_length'], 1, 1])
     elif field['type'] == 'dynamic_varlen':
-      length = tf.io.decode_raw(features['length_'+key].values, tf.int32)
+      length = tf.io.decode_raw(features[f'length_{key}'].values, tf.int32)
       length = tf.reshape(length, [-1])
       data = tf.RaggedTensor.from_row_lengths(data, row_lengths=length)
     elif field['type'] != 'dynamic':
@@ -50,7 +50,7 @@ def load_dataset(path, split):
   """Load dataset."""
   with open(os.path.join(path, 'meta.json'), 'r') as fp:
     meta = json.loads(fp.read())
-  ds = tf.data.TFRecordDataset(os.path.join(path, split+'.tfrecord'))
+  ds = tf.data.TFRecordDataset(os.path.join(path, f'{split}.tfrecord'))
   ds = ds.map(functools.partial(_parse, meta=meta), num_parallel_calls=8)
   ds = ds.prefetch(1)
   return ds
@@ -64,9 +64,10 @@ def add_targets(ds, fields, add_history):
       out[key] = val[1:-1]
       if key in fields:
         if add_history:
-          out['prev|'+key] = val[0:-2]
-        out['target|'+key] = val[2:]
+          out[f'prev|{key}'] = val[:-2]
+        out[f'target|{key}'] = val[2:]
     return out
+
   return ds.map(fn, num_parallel_calls=8)
 
 
@@ -79,7 +80,7 @@ def split_and_preprocess(ds, noise_field, noise_scale, noise_gamma):
     mask = tf.equal(frame['node_type'], NodeType.NORMAL)[:, 0]
     noise = tf.where(mask, noise, tf.zeros_like(noise))
     frame[noise_field] += noise
-    frame['target|'+noise_field] += (1.0 - noise_gamma) * noise
+    frame[f'target|{noise_field}'] += (1.0 - noise_gamma) * noise
     return frame
 
   ds = ds.flat_map(tf.data.Dataset.from_tensor_slices)

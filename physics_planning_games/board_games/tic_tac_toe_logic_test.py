@@ -33,16 +33,20 @@ class TicTacToeGameLogicTest(parameterized.TestCase):
                                   self.expected_board_state)
 
     action = tic_tac_toe_logic.SingleMarkerAction(col=1, row=2)
-    self.assertTrue(self.logic.apply(player=0, action=action),
-                    msg='Invalid action: {}'.format(action))
+    self.assertTrue(
+        self.logic.apply(player=0, action=action),
+        msg=f'Invalid action: {action}',
+    )
     self.expected_board_state[action.row, action.col, 0] = False
     self.expected_board_state[action.row, action.col, 1] = True
     np.testing.assert_array_equal(self.logic.get_board_state(),
                                   self.expected_board_state)
 
     action = tic_tac_toe_logic.SingleMarkerAction(col=0, row=1)
-    self.assertTrue(self.logic.apply(player=1, action=action),
-                    msg='Invalid action: {}'.format(action))
+    self.assertTrue(
+        self.logic.apply(player=1, action=action),
+        msg=f'Invalid action: {action}',
+    )
     self.expected_board_state[action.row, action.col, 0] = False
     self.expected_board_state[action.row, action.col, 2] = True
     np.testing.assert_array_equal(self.logic.get_board_state(),
@@ -52,8 +56,10 @@ class TicTacToeGameLogicTest(parameterized.TestCase):
     np.testing.assert_array_equal(self.logic.get_board_state(),
                                   self.expected_board_state)
     action = tic_tac_toe_logic.SingleMarkerAction(col=1, row=2)
-    self.assertTrue(self.logic.apply(player=0, action=action),
-                    msg='Invalid action: {}'.format(action))
+    self.assertTrue(
+        self.logic.apply(player=0, action=action),
+        msg=f'Invalid action: {action}',
+    )
     self.expected_board_state[action.row, action.col, 0] = False
     self.expected_board_state[action.row, action.col, 1] = True
     np.testing.assert_array_equal(self.logic.get_board_state(),
@@ -61,12 +67,16 @@ class TicTacToeGameLogicTest(parameterized.TestCase):
 
     # Player 0 tries to move again in the same location.
     action = tic_tac_toe_logic.SingleMarkerAction(col=1, row=2)
-    self.assertFalse(self.logic.apply(player=0, action=action),
-                     msg='Invalid action was accepted: {}'.format(action))
+    self.assertFalse(
+        self.logic.apply(player=0, action=action),
+        msg=f'Invalid action was accepted: {action}',
+    )
 
     # Player 1 tries to move in the same location as player 0.
-    self.assertFalse(self.logic.apply(player=1, action=action),
-                     msg='Invalid action was accepted: {}'.format(action))
+    self.assertFalse(
+        self.logic.apply(player=1, action=action),
+        msg=f'Invalid action was accepted: {action}',
+    )
 
     # The board state should not have changed as a result of invalid actions.
     np.testing.assert_array_equal(self.logic.get_board_state(),
@@ -104,8 +114,10 @@ class TicTacToeGameLogicTest(parameterized.TestCase):
       self.assertFalse(self.logic.is_game_over)
       self.assertDictEqual(self.logic.get_reward, {0: 0.0, 1: 0.0})
       action = tic_tac_toe_logic.SingleMarkerAction(col=col, row=row)
-      self.assertTrue(self.logic.apply(player=player_id, action=action),
-                      msg='Invalid action: {}'.format(action))
+      self.assertTrue(
+          self.logic.apply(player=player_id, action=action),
+          msg=f'Invalid action: {action}',
+      )
     self.assertTrue(self.logic.is_game_over)
     rewards = self.logic.get_reward
     if winner_id is not None:
@@ -135,9 +147,10 @@ class TicTacToeGameLogicTest(parameterized.TestCase):
       while not logic.is_game_over:
         current_player = players[current_player_idx]
         action = current_player.policy(logic, rand_state)
-        self.assertTrue(logic.apply(current_player_idx, action),
-                        msg='Opponent {} selected invalid action {}'.format(
-                            current_player, action))
+        self.assertTrue(
+            logic.apply(current_player_idx, action),
+            msg=f'Opponent {current_player} selected invalid action {action}',
+        )
         current_player_idx = (current_player_idx + 1) % 2
 
       # Record the winner.
@@ -180,8 +193,10 @@ class TicTacToeGameLogicTest(parameterized.TestCase):
     rand_state = np.random.RandomState(42)
     for (player_id, row, col) in move_sequence:
       action = tic_tac_toe_logic.SingleMarkerAction(col=col, row=row)
-      self.assertTrue(self.logic.apply(player=player_id, action=action),
-                      msg='Invalid action: {}'.format(action))
+      self.assertTrue(
+          self.logic.apply(player=player_id, action=action),
+          msg=f'Invalid action: {action}',
+      )
 
     state = self.logic.open_spiel_state
     planner_action = tic_tac_toe_logic.tic_tac_toe_minimax(state,
@@ -192,8 +207,10 @@ class TicTacToeGameLogicTest(parameterized.TestCase):
     self.logic = tic_tac_toe_logic.TicTacToeGameLogic()
     for (player_id, row, col) in move_sequence:
       action = tic_tac_toe_logic.SingleMarkerAction(col=col, row=row)
-      self.assertTrue(self.logic.apply(player=player_id, action=action),
-                      msg='Invalid action: {}'.format(action))
+      self.assertTrue(
+          self.logic.apply(player=player_id, action=action),
+          msg=f'Invalid action: {action}',
+      )
 
     board = self.logic.get_board_state()
     planner_action = tic_tac_toe_logic.tic_tac_toe_minimax(board,

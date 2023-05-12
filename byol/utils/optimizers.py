@@ -30,9 +30,7 @@ FilterFn = Callable[[Tuple[Any], jnp.ndarray], jnp.ndarray]
 def exclude_bias_and_norm(path: Tuple[Any], val: jnp.ndarray) -> jnp.ndarray:
   """Filter to exclude biaises and normalizations weights."""
   del val
-  if path[-1] == "b" or "norm" in path[-2]:
-    return False
-  return True
+  return path[-1] != "b" and "norm" not in path[-2]
 
 
 def _partial_update(updates: optax.Updates,

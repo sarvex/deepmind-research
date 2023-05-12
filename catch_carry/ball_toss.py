@@ -228,16 +228,11 @@ class BallToss(composer.Task):
         angular_velocity=ang_vel)
 
   def after_step(self, physics, random_state):
-    # First we check for failure termination (walker or ball touches ground).
-    ground_failure = False
-    for contact in physics.data.contact:
-      if ((contact.geom1 == self._ground_geomid and
-           contact.geom2 not in self._feet_geomids) or
-          (contact.geom2 == self._ground_geomid and
-           contact.geom1 not in self._feet_geomids)):
-        ground_failure = True
-        break
-
+    ground_failure = any(
+        ((contact.geom1 == self._ground_geomid and contact.geom2 not in
+          self._feet_geomids) or (contact.geom2 == self._ground_geomid
+                                  and contact.geom1 not in self._feet_geomids))
+        for contact in physics.data.contact)
     contact_features = self._evaluate_contacts(physics)
     prop_lhand, prop_rhand, bucket_prop, bucket_walker, walker_prop = contact_features
 

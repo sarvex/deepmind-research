@@ -55,7 +55,7 @@ def _make_checkerboard(rows,
   for i in range(rows):
     for j in range(columns):
       geom_mat = black_mat if ((i % 2) == (j % 2)) else white_mat
-      name = '{}_{}'.format(i, j)
+      name = f'{i}_{j}'
       geoms.append(
           root.worldbody.add(
               'geom',
@@ -122,7 +122,7 @@ def _make_goboard(boardsize,
   touch_sensors = []
   for i in range(rows):
     for j in range(columns):
-      name = '{}_{}'.format(i, j)
+      name = f'{i}_{j}'
       if _SHOW_DEBUG_GRID:
         transparent_mat = black_mat if ((i % 2) == (j % 2)) else white_mat
       geoms.append(
@@ -188,7 +188,7 @@ class CheckerBoard(composer.Entity):
     finger_geoms_ids = set(physics.bind(hand.finger_geoms).element_id)
     contacts = self._contact_from_before_substep
 
-    set1, set2 = set([geom_id]), finger_geoms_ids
+    set1, set2 = {geom_id}, finger_geoms_ids
     for contact in contacts:
       finger_tile_contact = ((contact.geom1 in set1 and
                               contact.geom2 in set2) or
@@ -214,10 +214,8 @@ class CheckerBoard(composer.Entity):
       # If there are multiple contacts involving this square of the board, just
       # pick the first one.
       return contact[relevant_contact_ids[0]].pos.copy()
-    else:
-      print("Touch sensor at ({},{}) doesn't have any active contacts!".format(
-          row, col))
-      return False
+    print(f"Touch sensor at ({row},{col}) doesn't have any active contacts!")
+    return False
 
   def get_contact_indices(self, physics):
     pressures = physics.bind(self._touch_sensors.ravel()).sensordata
@@ -280,7 +278,7 @@ class GoBoard(CheckerBoard):
     finger_geoms_ids = set(physics.bind(hand.finger_geoms).element_id)
     contacts = self._contact_from_before_substep
 
-    set1, set2 = set([geom_id]), finger_geoms_ids
+    set1, set2 = {geom_id}, finger_geoms_ids
     for contact in contacts:
       finger_tile_contact = ((contact.geom1 in set1 and
                               contact.geom2 in set2) or

@@ -346,7 +346,7 @@ def positional_features_all(positions: tf.Tensor,
                          'positional_features_gamma']
   num_components = len(feature_functions)  # 1 per each basis function
   if not symmetric:
-    num_components = 2 * num_components
+    num_components *= 2
 
   # For now, we do not allow odd sized embeddings.
   if feature_size % num_components != 0:

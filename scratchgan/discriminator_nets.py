@@ -88,11 +88,10 @@ class LSTMEmbedDiscNet(snt.AbstractModule):
     lstm_inputs.shape.assert_is_compatible_with(
         [batch_size, max_sequence_length, self._feature_sizes[0]])
 
-    encoder_cells = []
-    for feature_size in self._feature_sizes:
-      encoder_cells += [
-          snt.LSTM(feature_size, use_layer_norm=self._use_layer_norm)
-      ]
+    encoder_cells = [
+        snt.LSTM(feature_size, use_layer_norm=self._use_layer_norm)
+        for feature_size in self._feature_sizes
+    ]
     encoder_cell = snt.DeepRNN(encoder_cells)
     initial_state = encoder_cell.initial_state(batch_size)
 
@@ -117,5 +116,4 @@ class LSTMEmbedDiscNet(snt.AbstractModule):
     # the logits at a given timestep will depend on the inputs for all other
     # timesteps, including the ones that should be masked.
     mask = utils.get_mask_past_symbol(sequence, self._pad_token)
-    masked_logits_flat = logits_flat * tf.cast(mask, tf.float32)
-    return masked_logits_flat
+    return logits_flat * tf.cast(mask, tf.float32)

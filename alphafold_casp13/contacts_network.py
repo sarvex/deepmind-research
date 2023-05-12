@@ -135,7 +135,7 @@ class ContactsNet(sonnet.AbstractModule):
       assert inputs_1d.shape.as_list()[-1] <= 21 + (
           1 if 'seq_length' in self._features else 0)
       inputs_1d = inputs_1d[:, :, 7:8]
-    logits = self.compute_outputs(
+    return self.compute_outputs(
         inputs_1d=inputs_1d,
         residue_index=placeholders['residue_index_placeholder'],
         inputs_2d=placeholders['inputs_2d_placeholder'],
@@ -146,7 +146,6 @@ class ContactsNet(sonnet.AbstractModule):
         crop_size_y=crop_size_y,
         data_format='NHWC',  # Force NHWC for evals.
     )
-    return logits
 
   def compute_outputs(self, inputs_1d, residue_index, inputs_2d, crop_x, crop_y,
                       use_on_the_fly_stats, crop_size_x, crop_size_y,
@@ -206,17 +205,17 @@ class ContactsNet(sonnet.AbstractModule):
                                'updates_collections': None},
             scope='collapsed_embed_%d' % i)
 
-      if self.torsion_multiplier > 0:
-        self.torsion_logits = tf.contrib.layers.fully_connected(
-            embedding_1d,
-            num_outputs=self._torsion_bins * self._torsion_bins,
-            activation_fn=None,
-            scope='torsion_logits')
-        self.torsion_output = tf.nn.softmax(self.torsion_logits)
-      if self.secstruct_multiplier > 0:
-        self._secstruct.make_layer_new(embedding_1d)
-      if self.asa_multiplier > 0:
-        self.asa_logits = self._asa.compute_asa_output(embedding_1d)
+    if self.torsion_multiplier > 0:
+      self.torsion_logits = tf.contrib.layers.fully_connected(
+          embedding_1d,
+          num_outputs=self._torsion_bins * self._torsion_bins,
+          activation_fn=None,
+          scope='torsion_logits')
+      self.torsion_output = tf.nn.softmax(self.torsion_logits)
+    if self.secstruct_multiplier > 0:
+      self._secstruct.make_layer_new(embedding_1d)
+    if self.asa_multiplier > 0:
+      self.asa_logits = self._asa.compute_asa_output(embedding_1d)
     return logits
 
   @staticmethod
@@ -388,8 +387,8 @@ class ContactsNet(sonnet.AbstractModule):
                               layers_forward, output_dimension, data_format,
                               crop_x, crop_y, use_on_the_fly_stats):
     """Given pre-logits, compute the final distogram/contact activations."""
-    config_2d_deep = self._network_2d_deep
     if self._reshape_layer:
+      config_2d_deep = self._network_2d_deep
       in_channels = config_2d_deep.num_filters
       concat_features = [contact_pre_logits]
       if features_forward is not None:

@@ -77,8 +77,7 @@ def ensemble_predictions(
   num_classes_with_max_value = (
       all_logits == max_logit_value[..., None]).sum(axis=-1)
 
-  num_logit_ties = (num_classes_with_max_value > 1).sum()
-  if num_logit_ties:
+  if num_logit_ties := (num_classes_with_max_value > 1).sum():
     logging.warn(
         'Found %d models with the exact same logits for two of the classes. '
         '`argmax` will choose the first.', num_logit_ties)

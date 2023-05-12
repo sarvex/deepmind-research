@@ -46,10 +46,7 @@ class NF_ResNet(hk.Module):
     self.width_pattern = [item * self.width for item in [64, 128, 256, 512]]
     self.depth_pattern = block_params['depth']
     self.activation = base.nonlinearities[activation]
-    if drop_rate is None:
-      self.drop_rate = block_params['drop_rate']
-    else:
-      self.drop_rate = drop_rate
+    self.drop_rate = block_params['drop_rate'] if drop_rate is None else drop_rate
     self.which_conv = base.WSConv2D
     # Stem
     ch = int(16 * self.width)
@@ -99,7 +96,7 @@ class NF_ResNet(hk.Module):
     out = hk.max_pool(out, window_shape=(1, 3, 3, 1),
                       strides=(1, 2, 2, 1), padding='SAME')
     if return_metrics:
-      outputs.update(base.signal_metrics(out, 0))
+      outputs |= base.signal_metrics(out, 0)
     # Blocks
     for i, block in enumerate(self.blocks):
       out, res_avg_var = block(out, is_training=is_training)

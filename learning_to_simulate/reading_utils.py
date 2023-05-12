@@ -50,9 +50,7 @@ def convert_to_tensor(x, encoded_dtype):
   if len(x) == 1:
     out = np.frombuffer(x[0].numpy(), dtype=encoded_dtype)
   else:
-    out = []
-    for el in x:
-      out.append(np.frombuffer(el.numpy(), dtype=encoded_dtype))
+    out = [np.frombuffer(el.numpy(), dtype=encoded_dtype) for el in x]
   out = tf.convert_to_tensor(np.array(out))
   return out
 
@@ -119,21 +117,24 @@ def split_trajectory(context, features, window_length=7):
   # the last split).
   input_trajectory_length = trajectory_length - window_length + 1
 
-  model_input_features = {}
-  # Prepare the context features per step.
-  model_input_features['particle_type'] = tf.tile(
-      tf.expand_dims(context['particle_type'], axis=0),
-      [input_trajectory_length, 1])
-
+  model_input_features = {
+      'particle_type':
+      tf.tile(
+          tf.expand_dims(context['particle_type'], axis=0),
+          [input_trajectory_length, 1],
+      )
+  }
   if 'step_context' in features:
-    global_stack = []
-    for idx in range(input_trajectory_length):
-      global_stack.append(features['step_context'][idx:idx + window_length])
+    global_stack = [
+        features['step_context'][idx:idx + window_length]
+        for idx in range(input_trajectory_length)
+    ]
     model_input_features['step_context'] = tf.stack(global_stack)
 
-  pos_stack = []
-  for idx in range(input_trajectory_length):
-    pos_stack.append(features['position'][idx:idx + window_length])
+  pos_stack = [
+      features['position'][idx:idx + window_length]
+      for idx in range(input_trajectory_length)
+  ]
   # Get the corresponding positions
   model_input_features['position'] = tf.stack(pos_stack)
 

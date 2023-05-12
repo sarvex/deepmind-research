@@ -107,10 +107,8 @@ class LearnedSimulator(snt.AbstractModule):
 
     normalized_acceleration = self._graph_network(input_graphs_tuple)
 
-    next_position = self._decoder_postprocessor(
-        normalized_acceleration, position_sequence)
-
-    return next_position
+    return self._decoder_postprocessor(normalized_acceleration,
+                                       position_sequence)
 
   def _encoder_preprocessor(
       self, position_sequence, n_node, global_context, particle_types):
@@ -123,9 +121,6 @@ class LearnedSimulator(snt.AbstractModule):
      ) = connectivity_utils.compute_connectivity_for_batch_pyfunc(
          most_recent_position, n_node, self._connectivity_radius)
 
-    # Collect node features.
-    node_features = []
-
     # Normalized velocity sequence, merging spatial an time axis.
     velocity_stats = self._normalization_stats["velocity"]
     normalized_velocity_sequence = (
@@ -133,8 +128,7 @@ class LearnedSimulator(snt.AbstractModule):
 
     flat_velocity_sequence = snt.MergeDims(start=1, size=2)(
         normalized_velocity_sequence)
-    node_features.append(flat_velocity_sequence)
-
+    node_features = [flat_velocity_sequence]
     # Normalized clipped distances to lower and upper boundaries.
     # boundaries are an array of shape [num_dimensions, 2], where the second
     # axis, provides the lower/upper boundaries.
@@ -155,15 +149,11 @@ class LearnedSimulator(snt.AbstractModule):
           self._particle_type_embedding, particle_types)
       node_features.append(particle_type_embeddings)
 
-    # Collect edge features.
-    edge_features = []
-
     # Relative displacement and distances normalized to radius
     normalized_relative_displacements = (
         tf.gather(most_recent_position, senders) -
         tf.gather(most_recent_position, receivers)) / self._connectivity_radius
-    edge_features.append(normalized_relative_displacements)
-
+    edge_features = [normalized_relative_displacements]
     normalized_relative_distances = tf.norm(
         normalized_relative_displacements, axis=-1, keepdims=True)
     edge_features.append(normalized_relative_distances)
@@ -201,8 +191,7 @@ class LearnedSimulator(snt.AbstractModule):
     most_recent_velocity = most_recent_position - position_sequence[:, -2]
 
     new_velocity = most_recent_velocity + acceleration  # * dt = 1
-    new_position = most_recent_position + new_velocity  # * dt = 1
-    return new_position
+    return most_recent_position + new_velocity
 
   def get_predicted_and_target_normalized_accelerations(
       self, next_position, position_sequence_noise, position_sequence,
@@ -256,9 +245,7 @@ class LearnedSimulator(snt.AbstractModule):
     acceleration = next_velocity - previous_velocity
 
     acceleration_stats = self._normalization_stats["acceleration"]
-    normalized_acceleration = (
-        acceleration - acceleration_stats.mean) / acceleration_stats.std
-    return normalized_acceleration
+    return (acceleration - acceleration_stats.mean) / acceleration_stats.std
 
 
 def time_diff(input_sequence):

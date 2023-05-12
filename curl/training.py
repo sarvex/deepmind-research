@@ -265,8 +265,12 @@ def setup_training_and_eval_graphs(x, label, y, n_y, curl_model,
   cat = curl_model.infer_cluster(hiddens)
   cat_probs = cat.probs
 
-  confusion = tf.confusion_matrix(label, tf.argmax(cat_probs, axis=1),
-                                  num_classes=n_y, name=name + '_confusion')
+  confusion = tf.confusion_matrix(
+      label,
+      tf.argmax(cat_probs, axis=1),
+      num_classes=n_y,
+      name=f'{name}_confusion',
+  )
   purity = (tf.reduce_sum(tf.reduce_max(confusion, axis=0))
             / tf.reduce_sum(confusion))
 
@@ -343,10 +347,10 @@ def setup_dynamic_ops(n_y):
   # 1) Ops to get and set latent encoder params (entire tensors)
   latent_enc_tensors = {}
   for k in range(n_y):
-    latent_enc_tensors['latent_w_' + str(k)] = graph.get_tensor_by_name(
-        'latent_encoder/mlp_latent_encoder_{}/w:0'.format(k))
-    latent_enc_tensors['latent_b_' + str(k)] = graph.get_tensor_by_name(
-        'latent_encoder/mlp_latent_encoder_{}/b:0'.format(k))
+    latent_enc_tensors[f'latent_w_{str(k)}'] = graph.get_tensor_by_name(
+        f'latent_encoder/mlp_latent_encoder_{k}/w:0')
+    latent_enc_tensors[f'latent_b_{str(k)}'] = graph.get_tensor_by_name(
+        f'latent_encoder/mlp_latent_encoder_{k}/b:0')
 
   latent_enc_assign_ops = {}
   latent_enc_phs = {}
@@ -413,7 +417,7 @@ def setup_dynamic_ops(n_y):
   sigma_update_op = tf.scatter_nd_update(latent_prior_sigma_w, sigma_indices,
                                          sigma_updates)
 
-  dynamic_ops = {
+  return {
       'ind_from_ph': ind_from,
       'ind_to_ph': ind_to,
       'latent_enc_tensors': latent_enc_tensors,
@@ -422,10 +426,8 @@ def setup_dynamic_ops(n_y):
       'cluster_w_update_op': cluster_w_update_op,
       'cluster_b_update_op': cluster_b_update_op,
       'mu_update_op': mu_update_op,
-      'sigma_update_op': sigma_update_op
+      'sigma_update_op': sigma_update_op,
   }
-
-  return dynamic_ops
 
 
 def copy_component_params(ind_from, ind_to, sess, ind_from_ph, ind_to_ph,
@@ -450,29 +452,25 @@ def copy_component_params(ind_from, ind_to, sess, ind_from_ph, ind_to_ph,
     sigma_update_op: op for updating sigma weights of latent prior.
 
   """
-  update_ops = []
-  feed_dict = {}
   # Copy for latent encoder.
   new_w_val, new_b_val = sess.run([
-      latent_enc_tensors['latent_w_' + str(ind_from)],
-      latent_enc_tensors['latent_b_' + str(ind_from)]
+      latent_enc_tensors[f'latent_w_{str(ind_from)}'],
+      latent_enc_tensors[f'latent_b_{str(ind_from)}'],
   ])
-  update_ops.extend([
-      latent_enc_assign_ops['latent_w_' + str(ind_to)],
-      latent_enc_assign_ops['latent_b_' + str(ind_to)]
-  ])
-  feed_dict.update({
-      latent_enc_phs['latent_w_' + str(ind_to)]: new_w_val,
-      latent_enc_phs['latent_b_' + str(ind_to)]: new_b_val
+  feed_dict = dict({
+      latent_enc_phs[f'latent_w_{str(ind_to)}']: new_w_val,
+      latent_enc_phs[f'latent_b_{str(ind_to)}']: new_b_val,
   })
-
-  # Copy for cluster encoder softmax.
-  update_ops.extend([cluster_w_update_op, cluster_b_update_op])
-  feed_dict.update({ind_from_ph: ind_from, ind_to_ph: ind_to})
+  update_ops = [
+      latent_enc_assign_ops[f'latent_w_{str(ind_to)}'],
+      latent_enc_assign_ops[f'latent_b_{str(ind_to)}'],
+      *[cluster_w_update_op, cluster_b_update_op],
+  ]
+  feed_dict |= {ind_from_ph: ind_from, ind_to_ph: ind_to}
 
   # Copy for latent prior.
   update_ops.extend([mu_update_op, sigma_update_op])
-  feed_dict.update({ind_from_ph: ind_from, ind_to_ph: ind_to})
+  feed_dict |= {ind_from_ph: ind_from, ind_to_ph: ind_to}
   sess.run(update_ops, feed_dict)
 
 

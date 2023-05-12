@@ -87,8 +87,7 @@ class Model(snt.AbstractModule):
     # build loss
     loss_mask = tf.equal(inputs['node_type'][:, 0], common.NodeType.NORMAL)
     error = tf.reduce_sum((target_normalized - network_output)**2, axis=1)
-    loss = tf.reduce_mean(error[loss_mask])
-    return loss
+    return tf.reduce_mean(error[loss_mask])
 
   def _update(self, inputs, per_node_network_output):
     """Integrate model outputs."""
@@ -96,5 +95,4 @@ class Model(snt.AbstractModule):
     # integrate forward
     cur_position = inputs['world_pos']
     prev_position = inputs['prev|world_pos']
-    position = 2*cur_position + acceleration - prev_position
-    return position
+    return 2*cur_position + acceleration - prev_position

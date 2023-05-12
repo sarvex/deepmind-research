@@ -98,8 +98,7 @@ def rel_shift(position_logits):
                                [batch_size, num_heads, t2 + 1, t1])
   # Remove extra time dimension and re-shape.
   position_logits = position_logits[:, :, 1:]
-  position_logits = tf.reshape(position_logits, input_shape)
-  return position_logits
+  return tf.reshape(position_logits, input_shape)
 
 
 def _layer_norm(inputs):
@@ -153,10 +152,7 @@ class ResidualDropoutWrapper(base.AbstractModule):
     output = inputs + module_output
     if self._layer_norm in ('both', 'output'):
       output = _layer_norm(output)
-    if module_state is None:
-      return output
-    else:
-      return output, module_state
+    return output if module_state is None else (output, module_state)
 
 
 def future_mask(chunk_size, dtype):
@@ -246,8 +242,8 @@ def get_position_encodings(sequence_length,
   output_dim = pos_emb.get_shape().as_list()[-1]
   if output_dim != hidden_size:
     raise ValueError(
-        'position embedding dimension ({}) does not match that of the input ({}).'
-        .format(output_dim, hidden_size))
+        f'position embedding dimension ({output_dim}) does not match that of the input ({hidden_size}).'
+    )
   return pos_emb
 
 
@@ -312,8 +308,7 @@ class MultiheadAttention(base.AbstractModule):
           shape=[input_size, self._num_heads * hidden_size],
           initializer=self._init['w'])
       w = tf.reshape(w, [input_size, self._num_heads, hidden_size])
-      out = tf.einsum('bij,jhk->bhik', inputs, w)
-      return out
+      return tf.einsum('bij,jhk->bhik', inputs, w)
 
   def _build(self,
              inputs,
@@ -410,12 +405,14 @@ class MultiheadAttention(base.AbstractModule):
           key_positions = key_positions[:, -att_size:]  # Crop to layer mem size
         is_final = i == len(self._positional_encodings) - 1
         suffix = '' if is_final else '_%d' % i
-        relative_keys = self.multihead_linear(
-            key_positions, name='relative_keys' + suffix)
+        relative_keys = self.multihead_linear(key_positions,
+                                              name=f'relative_keys{suffix}')
         # [B, H, N, D]
         r_r_bias = tf.get_variable(
-            'r_r_bias' + suffix, [1, self._num_heads, 1, self._key_size],
-            dtype=inputs.dtype)
+            f'r_r_bias{suffix}',
+            [1, self._num_heads, 1, self._key_size],
+            dtype=inputs.dtype,
+        )
         relative_keys = tf.tile(relative_keys, [batch_size, 1, 1, 1])
         relative_logits = tf.matmul(
             q + r_r_bias, relative_keys, transpose_b=True)
@@ -467,21 +464,7 @@ class TransformerTower(base.AbstractModule):
   Vaswani et al. 2017.
   """
 
-  def __init__(self,
-               value_size,
-               num_heads,
-               num_layers,
-               causal=True,
-               key_size=None,
-               shared_attention=False,
-               output_size=None,
-               mlp_hidden_sizes=tuple([1024]),
-               dropout_rate=0.1,
-               use_relative_positions=True,
-               clamp_time_range=0,
-               same_attention_length=False,
-               layer_norm='input',
-               name='transformer_tower'):
+  def __init__(self, value_size, num_heads, num_layers, causal=True, key_size=None, shared_attention=False, output_size=None, mlp_hidden_sizes=(1024, ), dropout_rate=0.1, use_relative_positions=True, clamp_time_range=0, same_attention_length=False, layer_norm='input', name='transformer_tower'):
     """Initializes TransformerTower.
 
     Args:
@@ -605,7 +588,7 @@ class TransformerTower(base.AbstractModule):
       em_mem_size = max(_memory_size(s.episodic_memory) for s in state)
       memory_sizes = [cm_mem_size, em_mem_size]
     else:
-      memory_sizes = [max([_memory_size(s) for s in state])]
+      memory_sizes = [max(_memory_size(s) for s in state)]
     chunk_size = inputs.get_shape().as_list()[1]
     self._positional_encodings = []
     # Creates positional encodings for different memory types.

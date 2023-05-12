@@ -215,11 +215,9 @@ class Sequential(snt.Module):
 
   def __call__(self, inputs: tf.Tensor, is_training: bool, **kwargs):
     outputs = inputs
-    for _, mod in enumerate(self._layers):
-      if accepts_is_training(mod):
-        outputs = mod(outputs, is_training=is_training, **kwargs)
-      else:
-        outputs = mod(outputs, **kwargs)
+    for mod in self._layers:
+      outputs = (mod(outputs, is_training=is_training, **kwargs)
+                 if accepts_is_training(mod) else mod(outputs, **kwargs))
     return outputs
 
 

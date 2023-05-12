@@ -79,9 +79,8 @@ def main(_):
     train(config)
   elif config.mode == "evaluate_pair":
     while True:
-      checkpoint_path = utils.maybe_pick_models_to_evaluate(
-          checkpoint_dir=config.checkpoint_dir)
-      if checkpoint_path:
+      if checkpoint_path := utils.maybe_pick_models_to_evaluate(
+          checkpoint_dir=config.checkpoint_dir):
         evaluate_pair(
             config=config,
             batch_size=config.batch_size,
@@ -260,8 +259,7 @@ def train(config):
   with tf.Session() as sess:
 
     sess.run(tf.global_variables_initializer())
-    latest_ckpt = tf.train.latest_checkpoint(config.checkpoint_dir)
-    if latest_ckpt:
+    if latest_ckpt := tf.train.latest_checkpoint(config.checkpoint_dir):
       saver.restore(sess, latest_ckpt)
 
     for step in range(config.num_steps):
@@ -285,8 +283,9 @@ def train(config):
             gen_sequence_np[0, :], id_to_word)
         saver.save(
             sess,
-            save_path=config.checkpoint_dir + "scratchgan",
-            global_step=global_step)
+            save_path=f"{config.checkpoint_dir}scratchgan",
+            global_step=global_step,
+        )
         metrics_np["model_path"] = tf.train.latest_checkpoint(
             config.checkpoint_dir)
         logging.info(metrics_np)
@@ -294,8 +293,9 @@ def train(config):
     # After training, export models.
     saver.save(
         sess,
-        save_path=config.checkpoint_dir + "scratchgan",
-        global_step=global_step)
+        save_path=f"{config.checkpoint_dir}scratchgan",
+        global_step=global_step,
+    )
     logging.info("Saved final model at %s.",
                  tf.train.latest_checkpoint(config.checkpoint_dir))
 

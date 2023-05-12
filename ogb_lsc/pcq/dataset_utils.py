@@ -147,11 +147,9 @@ def build_dataset_iterator(
       if batch:
         yield _batch(batch)
 
-    for sample in batcher_fn():
-      yield sample
+    yield from batcher_fn()
   else:
-    for sample in batched_gen:
-      yield sample
+    yield from batched_gen
 
 
 def _get_conformer_filter(with_nans: bool):
@@ -198,16 +196,15 @@ def _sample_uniform_categorical(num: int, size: int) -> tf.Tensor:
 
 @jax.curry(jax.tree_map)
 def _downcast_ints(x):
-  if x.dtype == tf.int64:
-    return tf.cast(x, tf.int32)
-  return x
+  return tf.cast(x, tf.int32) if x.dtype == tf.int64 else x
 
 
 def _one_hot_atoms(atoms: tf.Tensor) -> tf.Tensor:
   vocab_sizes = features.get_atom_feature_dims()
-  one_hots = []
-  for i in range(atoms.shape[1]):
-    one_hots.append(tf.one_hot(atoms[:, i], vocab_sizes[i], dtype=tf.float32))
+  one_hots = [
+      tf.one_hot(atoms[:, i], vocab_sizes[i], dtype=tf.float32)
+      for i in range(atoms.shape[1])
+  ]
   return tf.concat(one_hots, axis=-1)
 
 
@@ -224,9 +221,10 @@ def _sample_one_hot_atoms(atoms: tf.Tensor) -> tf.Tensor:
 
 def _one_hot_bonds(bonds: tf.Tensor) -> tf.Tensor:
   vocab_sizes = features.get_bond_feature_dims()
-  one_hots = []
-  for i in range(bonds.shape[1]):
-    one_hots.append(tf.one_hot(bonds[:, i], vocab_sizes[i], dtype=tf.float32))
+  one_hots = [
+      tf.one_hot(bonds[:, i], vocab_sizes[i], dtype=tf.float32)
+      for i in range(bonds.shape[1])
+  ]
   return tf.concat(one_hots, axis=-1)
 
 
@@ -327,8 +325,8 @@ def _load_conformers(indices: List[int],
   for graph_idx, smile in zip(indices, smiles):
     del graph_idx  # Unused.
     if smile not in smile_to_conformer:
-      raise KeyError("Cache did not have conformer entry for the smile %s" %
-                     str(smile))
+      raise KeyError(
+          f"Cache did not have conformer entry for the smile {str(smile)}")
     conformers.append(dict(conformer=smile_to_conformer[smile]))
   return conformers
 

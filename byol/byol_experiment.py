@@ -174,9 +174,9 @@ class ByolExperiment:
       # main network.
       classif_out = classifier(jax.lax.stop_gradient(embedding))
       outputs = {}
-      outputs['projection' + suffix] = proj_out
-      outputs['prediction' + suffix] = pred_out
-      outputs['logits' + suffix] = classif_out
+      outputs[f'projection{suffix}'] = proj_out
+      outputs[f'prediction{suffix}'] = pred_out
+      outputs[f'logits{suffix}'] = classif_out
       return outputs
 
     if is_training:
@@ -520,8 +520,7 @@ class ByolExperiment:
       else:
         summed_scalars = jax.tree_multimap(jnp.add, summed_scalars, scalars)
 
-    mean_scalars = jax.tree_map(lambda x: x / num_samples, summed_scalars)
-    return mean_scalars
+    return jax.tree_map(lambda x: x / num_samples, summed_scalars)
 
   def evaluate(self, global_step, **unused_args):
     """Thin wrapper around _eval_epoch."""

@@ -107,11 +107,11 @@ def ensemble_predictions_by_probability_average(
 
 def get_accuracy_dict(predictions: Predictions) -> Dict[str, float]:
   """Returns the accuracy dict."""
-  output_dict = {}
-  output_dict['num_valid'] = predictions.predictions.shape[0]
   matches = (predictions.labels == predictions.predictions)
-  output_dict['accuracy'] = matches.mean()
-
+  output_dict = {
+      'num_valid': predictions.predictions.shape[0],
+      'accuracy': matches.mean(),
+  }
   pred_ranking = jnp.argsort(predictions.logits, axis=1)[:, ::-1]
   for k in range(1, 6):
     matches = jnp.any(

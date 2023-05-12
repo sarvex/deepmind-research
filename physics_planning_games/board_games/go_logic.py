@@ -15,6 +15,7 @@
 
 """Logic for the Go Game."""
 
+
 import abc
 import collections
 import enum
@@ -35,7 +36,7 @@ GoMarkerAction = collections.namedtuple('GoMarkerAction',
 # Note that there is no 'i' in these Go board coordinates
 # (cf https://senseis.xmp.net/?Coordinates)
 _X_CHARS = 'abcdefghjklmnopqrstuvwxyz'
-_X_MAP = {c: x for c, x in zip(_X_CHARS, range(len(_X_CHARS)))}
+_X_MAP = dict(zip(_X_CHARS, range(len(_X_CHARS))))
 
 
 def _go_marker_to_int(go_marker, board_size):
@@ -65,21 +66,17 @@ def _int_to_go_marker(move_int, board_size):
     GoMarkerAction encoding of move.
   """
   if move_int == board_size * board_size:
-    go_marker_action = GoMarkerAction(row=-1, col=-1, pass_action=True)
-  else:
-    row = move_int // board_size
-    col = move_int % board_size
-    go_marker_action = GoMarkerAction(row=row, col=col, pass_action=False)
-
-  return go_marker_action
+    return GoMarkerAction(row=-1, col=-1, pass_action=True)
+  row = move_int // board_size
+  col = move_int % board_size
+  return GoMarkerAction(row=row, col=col, pass_action=False)
 
 
 def _go_marker_to_str(go_marker):
   if go_marker.pass_action:
     return 'PASS'
   else:
-    move_str = _X_CHARS[go_marker.col] + str(go_marker.row + 1)
-    return move_str
+    return _X_CHARS[go_marker.col] + str(go_marker.row + 1)
 
 
 def _str_to_go_marker(move_str):
@@ -128,13 +125,12 @@ def _get_gnugo_ref_config(level=1, binary_path=None):
 
   gnugo_extra_flags = ['--mode', 'gtp']
   gnugo_extra_flags += ['--chinese-rules', '--capture-all-dead']
-  gtp_player_cfg = {
+  return {
       'name': 'gnugo',
       'binary_path': gnugo_binary_path,
       'level': level,
       'extra_flags': gnugo_extra_flags,
   }
-  return gtp_player_cfg
 
 
 class Stone(enum.Enum):
@@ -149,7 +145,7 @@ class Stone(enum.Enum):
 
 def gtp_to_sgf_point(gtp_point, board_size):
   """Format a GTP point according to the SGF format."""
-  if gtp_point.lower() == 'pass' or gtp_point.lower() == 'resign':
+  if gtp_point.lower() in ['pass', 'resign']:
     return 'tt'
   column, row = gtp_point[0], gtp_point[1:]
   # GTP doesn't use i, but SGF does, so we need to convert.
@@ -157,7 +153,7 @@ def gtp_to_sgf_point(gtp_point, board_size):
   sgf_columns = 'abcdefghijklmnopqrstuvwxyz'
   x = gtp_columns.find(column.lower())
   y = board_size - int(row)
-  return '%s%s' % (sgf_columns[x], sgf_columns[y])
+  return f'{sgf_columns[x]}{sgf_columns[y]}'
 
 
 class Gtp(object):
@@ -189,18 +185,18 @@ class Gtp(object):
 
   def set_komi(self, komi):
     self.komi = komi
-    self.gtp_command('komi %s' % komi)
+    self.gtp_command(f'komi {komi}')
 
   def set_free_handicap(self, vertices):
     self.free_handicap = vertices
-    self.gtp_command('set_free_handicap %s' % vertices)
+    self.gtp_command(f'set_free_handicap {vertices}')
 
   def place_free_handicap(self, n):
     self.free_handicap = self.gtp_command('place_free_handicap %d' % n)
     return self.free_handicap
 
   def make_move(self, move, record=True):
-    self.gtp_command('play %s' % move)
+    self.gtp_command(f'play {move}')
     if record:
       self._record_move(move)
 
@@ -218,8 +214,10 @@ class Gtp(object):
   def generate_move(self, color):
     if self.byo_yomi_time is not None:
       self.gtp_command('time_left %s %d 1' % (color, self.byo_yomi_time))
-    move = '%s %s' % (color, self.gtp_command(
-        'genmove %s' % color).split(' ')[-1].lower())
+    move = '%s %s' % (
+        color,
+        self.gtp_command(f'genmove {color}').split(' ')[-1].lower(),
+    )
     self._record_move(move, stderr=self.stderr)
     return move
 
@@ -233,8 +231,8 @@ class Gtp(object):
     self.gtp_command('quit')
 
   def final_status(self, status):
-    return self.gtp_command('final_status_list %s' % status)[2:].replace(
-        '\n', ' ').split(' ')
+    return (self.gtp_command(f'final_status_list {status}')[2:].replace(
+        '\n', ' ').split(' '))
 
   def fixed_handicap(self, handicap):
     self.handicap = handicap
@@ -260,17 +258,16 @@ class Gtp(object):
     for i, move in enumerate(self.moves):
       sgf += '\n;' + self._format_sgf_move(move)
       if self.comments[i]:
-        sgf += 'C[' + self._sgf_escape(self.comments[i]) + ']'
-    return sgf + ')'
+        sgf += f'C[{self._sgf_escape(self.comments[i])}]'
+    return f'{sgf})'
 
   def _format_sgf_move(self, move):
     """Format a move according to the SGF format."""
     color, vertex = str(move).split(' ')
-    return '%s[%s]' % (color[0].upper(),
-                       gtp_to_sgf_point(vertex, self.board_size))
+    return f'{color[0].upper()}[{gtp_to_sgf_point(vertex, self.board_size)}]'
 
   def _sgf_escape(self, text):
-    return ''.join(['\\' + t if t == ']' or t == '\\' else t for t in text])
+    return ''.join(['\\' + t if t in [']', '\\'] else t for t in text])
 
   @abc.abstractmethod
   def gtp_command(self, command, log=True):
@@ -441,7 +438,7 @@ class GoGameLogic(logic_base.OpenSpielBasedLogic):
     # Apply to the Go program
     player_color = 'B' if player == 0 else 'W'
     action_str = _go_marker_to_str(_int_to_go_marker(action, self._board_size))
-    self._gtp_player.gtp_command('play {} {}'.format(player_color, action_str))
+    self._gtp_player.gtp_command(f'play {player_color} {action_str}')
 
     return was_valid_move
 
@@ -450,11 +447,9 @@ def gen_move(game_logic, player):
   """Generate move from GTP player and game state defined in game_logic."""
   player_color = 'B' if player == 0 else 'W'
   gtp_player = game_logic.get_gtp_player()
-  move_str = gtp_player.gtp_command(
-      'reg_genmove {}'.format(player_color), log=True)
+  move_str = gtp_player.gtp_command(f'reg_genmove {player_color}', log=True)
   move_str = move_str[2:].lower()
-  action = _str_to_go_marker(move_str)
-  return action
+  return _str_to_go_marker(move_str)
 
 
 def gen_random_move(game_logic, random_state):
@@ -464,8 +459,7 @@ def gen_random_move(game_logic, random_state):
   valid_moves = game_logic.open_spiel_state.legal_actions()
   assert valid_moves
   move = random_state.choice(valid_moves)
-  go_action = _int_to_go_marker(move, board_size=game_logic.board_size())
-  return go_action
+  return _int_to_go_marker(move, board_size=game_logic.board_size())
 
 
 class GoGTPOpponent(logic_base.Opponent):

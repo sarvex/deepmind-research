@@ -290,15 +290,15 @@ def _get_simulator(model_kwargs, metadata, acc_noise_std, vel_noise_std):
         cast(metadata['context_mean']), cast(metadata['context_std']))
     normalization_stats['context'] = context_stats
 
-  simulator = learned_simulator.LearnedSimulator(
+  return learned_simulator.LearnedSimulator(
       num_dimensions=metadata['dim'],
       connectivity_radius=metadata['default_connectivity_radius'],
       graph_network_kwargs=model_kwargs,
       boundaries=metadata['bounds'],
       num_particle_types=NUM_PARTICLE_TYPES,
       normalization_stats=normalization_stats,
-      particle_type_embedding_size=16)
-  return simulator
+      particle_type_embedding_size=16,
+  )
 
 
 def get_one_step_estimator_fn(data_path,

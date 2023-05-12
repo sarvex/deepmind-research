@@ -112,9 +112,9 @@ def evaluate_keyboard(keyboard_path, weights_to_sweep):
           optimizer_kwargs=dict(learning_rate=0.0,),
           init_w=w_to_sweep)
 
-    returns = []
-    for _ in range(FLAGS.num_episodes):
-      returns.append(experiment.run_episode(env, agent))
+    returns = [
+        experiment.run_episode(env, agent) for _ in range(FLAGS.num_episodes)
+    ]
     tf.logging.info(f"Task: {w_to_sweep}, mean returns over "
                     f"{FLAGS.num_episodes} episodes is {np.mean(returns)}")
     all_returns.append(returns)

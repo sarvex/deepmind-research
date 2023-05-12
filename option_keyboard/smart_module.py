@@ -87,10 +87,9 @@ class SmartModuleExport(object):
 
     if inspect.ismethod(attr) or inspect.isfunction(attr):
       return self._create_captured_method(name)
-    else:
-      if all([isinstance(v, _ALLOWED_TYPES) for v in nest.flatten(attr)]):
-        self._captured_attrs[name] = attr
-      return attr
+    if all(isinstance(v, _ALLOWED_TYPES) for v in nest.flatten(attr)):
+      self._captured_attrs[name] = attr
+    return attr
 
   def __call__(self, *args, **kwargs):
     return self._create_captured_method("__call__")(*args, **kwargs)

@@ -33,13 +33,17 @@ class GoGameLogicTest(parameterized.TestCase):
                                   self.expected_board_state)
 
     action = go_logic.GoMarkerAction(col=1, row=2, pass_action=False)
-    self.assertTrue(self.logic.apply(player=0, action=action),
-                    msg='Invalid action: {}'.format(action))
+    self.assertTrue(
+        self.logic.apply(player=0, action=action),
+        msg=f'Invalid action: {action}',
+    )
 
   def test_pass(self):
     action = go_logic.GoMarkerAction(col=0, row=0, pass_action=True)
-    self.assertTrue(self.logic.apply(player=0, action=action),
-                    msg='Invalid action: {}'.format(action))
+    self.assertTrue(
+        self.logic.apply(player=0, action=action),
+        msg=f'Invalid action: {action}',
+    )
     self.expected_board_state[:, :, 3] = True
     np.testing.assert_array_equal(self.logic.get_board_state(),
                                   self.expected_board_state)
@@ -48,8 +52,10 @@ class GoGameLogicTest(parameterized.TestCase):
     np.testing.assert_array_equal(self.logic.get_board_state(),
                                   self.expected_board_state)
     action = go_logic.GoMarkerAction(col=1, row=2, pass_action=False)
-    self.assertTrue(self.logic.apply(player=0, action=action),
-                    msg='Invalid action: {}'.format(action))
+    self.assertTrue(
+        self.logic.apply(player=0, action=action),
+        msg=f'Invalid action: {action}',
+    )
     self.expected_board_state[action.row, action.col, 0] = False
     self.expected_board_state[action.row, action.col, 1] = True
     self.expected_board_state[:, :, 3] = True
@@ -57,12 +63,16 @@ class GoGameLogicTest(parameterized.TestCase):
                                   self.expected_board_state)
 
     action = go_logic.GoMarkerAction(col=1, row=2, pass_action=False)
-    self.assertFalse(self.logic.apply(player=0, action=action),
-                     msg='Invalid action was accepted: {}'.format(action))
+    self.assertFalse(
+        self.logic.apply(player=0, action=action),
+        msg=f'Invalid action was accepted: {action}',
+    )
 
     # Player 1 tries to move in the same location as player 0.
-    self.assertFalse(self.logic.apply(player=1, action=action),
-                     msg='Invalid action was accepted: {}'.format(action))
+    self.assertFalse(
+        self.logic.apply(player=1, action=action),
+        msg=f'Invalid action was accepted: {action}',
+    )
 
     # The board state should not have changed as a result of invalid actions.
     np.testing.assert_array_equal(self.logic.get_board_state(),
@@ -91,9 +101,10 @@ class GoGameLogicTest(parameterized.TestCase):
         current_player = players[current_player_idx]
         action = current_player.policy(logic, current_player_idx, rand_state)
         valid_action = logic.apply(current_player_idx, action)
-        self.assertTrue(valid_action,
-                        msg='Opponent {} selected invalid action {}'.format(
-                            current_player, action))
+        self.assertTrue(
+            valid_action,
+            msg=f'Opponent {current_player} selected invalid action {action}',
+        )
         current_player_idx = (current_player_idx + 1) % 2
 
       # Record the winner.
@@ -121,9 +132,11 @@ class GoGameLogicTest(parameterized.TestCase):
     go_marker = go_logic.GoMarkerAction(row=row, col=col, pass_action=False)
     int_action = go_logic._go_marker_to_int(go_marker, board_size=19)
     recovered_go_marker = go_logic._int_to_go_marker(int_action, board_size=19)
-    self.assertEqual(go_marker, recovered_go_marker,
-                     msg='Initial go marker {}, recovered {}'.format(
-                         go_marker, recovered_go_marker))
+    self.assertEqual(
+        go_marker,
+        recovered_go_marker,
+        msg=f'Initial go marker {go_marker}, recovered {recovered_go_marker}',
+    )
 
   @parameterized.named_parameters([
       dict(testcase_name='00',
@@ -134,11 +147,12 @@ class GoGameLogicTest(parameterized.TestCase):
     go_marker = go_logic.GoMarkerAction(row=row, col=col, pass_action=False)
     str_action = go_logic._go_marker_to_str(go_marker)
     recovered_go_marker = go_logic._str_to_go_marker(str_action)
-    self.assertEqual(go_marker,
-                     recovered_go_marker,
-                     msg='Initial go marker {}, recovered {}, '
-                         'str_action {}'.format(go_marker, recovered_go_marker,
-                                                str_action))
+    self.assertEqual(
+        go_marker,
+        recovered_go_marker,
+        msg=
+        f'Initial go marker {go_marker}, recovered {recovered_go_marker}, str_action {str_action}',
+    )
 
 
 if __name__ == '__main__':

@@ -473,5 +473,4 @@ class EvalExperiment:
       else:
         summed_scalars = jax.tree_multimap(jnp.add, summed_scalars, scalars)
 
-    mean_scalars = jax.tree_map(lambda x: x / num_samples, summed_scalars)
-    return mean_scalars
+    return jax.tree_map(lambda x: x / num_samples, summed_scalars)

@@ -81,18 +81,12 @@ tf.logging.set_verbosity(tf.logging.INFO)
 
 def _copy_vars(v_list):
   """Copy variables in v_list."""
-  t_list = []
-  for v in v_list:
-    t_list.append(tf.identity(v))
-  return t_list
+  return [tf.identity(v) for v in v_list]
 
 
 def _restore_vars(v_list, t_list):
   """Restore variables in v_list from t_list."""
-  ops = []
-  for v, t in zip(v_list, t_list):
-    ops.append(v.assign(t))
-  return ops
+  return [v.assign(t) for v, t in zip(v_list, t_list)]
 
 
 def _scale_vars(s, v_list):
@@ -108,8 +102,7 @@ def _acc_grads(g_sum, g_w, g):
 def _compute_reg_grads(gen_grads, disc_vars):
   """Compute gradients norm (this is an upper-bpund of the full-batch norm)."""
   gen_norm = tf.accumulate_n([tf.reduce_sum(u * u) for u in gen_grads])
-  disc_reg_grads = tf.gradients(gen_norm, disc_vars)
-  return disc_reg_grads
+  return tf.gradients(gen_norm, disc_vars)
 
 
 def run_model(prior, images, model, disc_reg_weight):

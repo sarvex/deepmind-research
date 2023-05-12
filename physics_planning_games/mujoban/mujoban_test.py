@@ -47,14 +47,23 @@ class MujobanTest(absltest.TestCase):
         strip_singleton_obs_buffer_dim=True)
     time_step = env.reset()
     self.assertEqual(
-        set([
-            'pixel_layer', 'full_entity_layer', 'top_camera',
-            'walker/body_height', 'walker/end_effectors_pos',
-            'walker/joints_pos', 'walker/joints_vel',
-            'walker/sensors_accelerometer', 'walker/sensors_gyro',
-            'walker/sensors_touch', 'walker/sensors_velocimeter',
-            'walker/world_zaxis', 'walker/orientation',
-        ]), set(time_step.observation.keys()))
+        {
+            'pixel_layer',
+            'full_entity_layer',
+            'top_camera',
+            'walker/body_height',
+            'walker/end_effectors_pos',
+            'walker/joints_pos',
+            'walker/joints_vel',
+            'walker/sensors_accelerometer',
+            'walker/sensors_gyro',
+            'walker/sensors_touch',
+            'walker/sensors_velocimeter',
+            'walker/world_zaxis',
+            'walker/orientation',
+        },
+        set(time_step.observation.keys()),
+    )
     top_camera = time_step.observation['top_camera']
     self.assertEqual(np.uint8, top_camera.dtype)
     self.assertEqual((64, 48, 3), top_camera.shape)
@@ -65,10 +74,14 @@ class MujobanTest(absltest.TestCase):
       action = 2*np.random.random(env.action_spec().shape) - 1
       time_step = env.step(action)
       all_step_types.append(time_step.step_type)
-    self.assertEqual(set([environment.StepType.FIRST,
-                          environment.StepType.MID,
-                          environment.StepType.LAST]),
-                     set(all_step_types))
+    self.assertEqual(
+        {
+            environment.StepType.FIRST,
+            environment.StepType.MID,
+            environment.StepType.LAST,
+        },
+        set(all_step_types),
+    )
 
 
 if __name__ == '__main__':

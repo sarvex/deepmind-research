@@ -61,9 +61,8 @@ def sample_random_position_sequence():
   """Returns mock data mimicking the input features collected by the encoder."""
   num_particles = tf.random_uniform(
       shape=(), minval=50, maxval=1000, dtype=tf.int32)
-  position_sequence = tf.random.normal(
+  return tf.random.normal(
       shape=[num_particles, SEQUENCE_LENGTH, NUM_DIMENSIONS])
-  return position_sequence
 
 
 def main():

@@ -340,9 +340,8 @@ def _to_tfds_split(split: Split) -> tfds.Split:
   """Returns the TFDS split appropriately sharded."""
   if split in (Split.TRAIN, Split.TRAIN_AND_VALID, Split.VALID):
     return tfds.Split.TRAIN
-  else:
-    assert split == Split.TEST
-    return tfds.Split.VALIDATION
+  assert split == Split.TEST
+  return tfds.Split.VALIDATION
 
 
 def _shard(split: Split, shard_index: int, num_shards: int) -> Tuple[int, int]:
@@ -374,18 +373,17 @@ def _preprocess_image(
     image = tf.image.random_flip_left_right(image)
     assert image.dtype == tf.uint8
     image = tf.image.resize(image, image_size, tf.image.ResizeMethod.BICUBIC)
+  elif eval_preproc == 'crop_resize':
+    image = _decode_and_center_crop(image_bytes, image_size=image_size)
+    assert image.dtype == tf.uint8
+    image = tf.image.resize(image, image_size, tf.image.ResizeMethod.BICUBIC)
+  elif 'resize_crop' in eval_preproc:
+    # Pass in crop percent
+    crop_pct = float(eval_preproc.split('_')[-1])
+    image = _decode_and_resize_then_crop(image_bytes, image_size=image_size,
+                                         crop_pct=crop_pct)
   else:
-    if eval_preproc == 'crop_resize':
-      image = _decode_and_center_crop(image_bytes, image_size=image_size)
-      assert image.dtype == tf.uint8
-      image = tf.image.resize(image, image_size, tf.image.ResizeMethod.BICUBIC)
-    elif 'resize_crop' in eval_preproc:
-      # Pass in crop percent
-      crop_pct = float(eval_preproc.split('_')[-1])
-      image = _decode_and_resize_then_crop(image_bytes, image_size=image_size,
-                                           crop_pct=crop_pct)
-    else:
-      raise ValueError(f'Unknown Eval Preproc {eval_preproc} provided!')
+    raise ValueError(f'Unknown Eval Preproc {eval_preproc} provided!')
   return image
 
 
@@ -395,27 +393,27 @@ def _augment_image(
     augment_name: Optional[str] = None,
 ) -> tf.Tensor:
   """Applies AA/RA to an image."""
-  if is_training and augment_name:
-    if 'autoaugment' in augment_name or 'randaugment' in augment_name:
-      input_image_type = image.dtype
-      image = tf.clip_by_value(image, 0.0, 255.0)
-      # Autoaugment requires a uint8 image; we cast here and then cast back
-      image = tf.cast(image, dtype=tf.uint8)
-      if 'autoaugment' in augment_name:
-        logging.info(f'Applying AutoAugment policy {augment_name}')
-        image = autoaugment.distort_image_with_autoaugment(image, 'v0')
-      elif 'randaugment' in augment_name:
-        magnitude = int(augment_name.split('_')[-1])  # pytype: disable=attribute-error
+  if (is_training and augment_name
+      and ('autoaugment' in augment_name or 'randaugment' in augment_name)):
+    input_image_type = image.dtype
+    image = tf.clip_by_value(image, 0.0, 255.0)
+    # Autoaugment requires a uint8 image; we cast here and then cast back
+    image = tf.cast(image, dtype=tf.uint8)
+    if 'autoaugment' in augment_name:
+      logging.info(f'Applying AutoAugment policy {augment_name}')
+      image = autoaugment.distort_image_with_autoaugment(image, 'v0')
+    elif 'randaugment' in augment_name:
+      magnitude = int(augment_name.split('_')[-1])  # pytype: disable=attribute-error
         # Allow passing in num_layers as a magnitude > 100
-        if magnitude > 100:
-          num_layers = magnitude // 100
-          magnitude = magnitude - int(num_layers * 100)
-        else:
-          num_layers = 2
-        logging.info(f'Applying RA {num_layers} x {magnitude}')
-        image = autoaugment.distort_image_with_randaugment(
-            image, num_layers=num_layers, magnitude=magnitude)
-      image = tf.cast(image, dtype=input_image_type)
+      if magnitude > 100:
+        num_layers = magnitude // 100
+        magnitude -= int(num_layers * 100)
+      else:
+        num_layers = 2
+      logging.info(f'Applying RA {num_layers} x {magnitude}')
+      image = autoaugment.distort_image_with_randaugment(
+          image, num_layers=num_layers, magnitude=magnitude)
+    image = tf.cast(image, dtype=input_image_type)
   return image
 
 
@@ -496,17 +494,13 @@ def _decode_and_center_crop(
   offset_width = ((image_width - padded_center_crop_width) + 1) // 2
   crop_window = [offset_height, offset_width,
                  padded_center_crop_height, padded_center_crop_width]
-  image = crop(image_bytes, crop_window)
-  return image
+  return crop(image_bytes, crop_window)
 
 
 def get_shape(image_bytes):
   """Gets the image shape for jpeg bytes or a uint8 decoded image."""
-  if image_bytes.dtype == tf.dtypes.string:
-    image_shape = tf.image.extract_jpeg_shape(image_bytes)
-  else:
-    image_shape = tf.shape(image_bytes)
-  return image_shape
+  return (tf.image.extract_jpeg_shape(image_bytes)
+          if image_bytes.dtype == tf.dtypes.string else tf.shape(image_bytes))
 
 
 def crop(image_bytes, crop_window):
@@ -528,10 +522,10 @@ def _decode_and_resize_then_crop(
   """Rescales an image to image_size / crop_pct, then center crops."""
   image = tf.image.decode_jpeg(image_bytes, channels=3)
   # Scale image to "scaled size" before taking a center crop
-  if crop_pct > 1.0:  # If crop_pct is >1, treat it as num pad pixels (like VGG)
-    scale_size = tuple([int(x + crop_pct) for x in image_size])
+  if crop_pct > 1.0:# If crop_pct is >1, treat it as num pad pixels (like VGG)
+    scale_size = tuple(int(x + crop_pct) for x in image_size)
   else:
-    scale_size = tuple([int(float(x) / crop_pct) for x in image_size])
+    scale_size = tuple(int(float(x) / crop_pct) for x in image_size)
   image = tf.image.resize(image, scale_size, tf.image.ResizeMethod.BICUBIC)
   crop_height = tf.cast(image_size[0], tf.int32)
   crop_width = tf.cast(image_size[1], tf.int32)

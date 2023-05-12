@@ -56,16 +56,14 @@ class Markers(composer.Entity):
     root.default.site.set_attributes(type='cylinder', size=(halfwidth, height))
     all_markers = []
     for i, color in enumerate(player_colors):
-      player_name = 'player_{}'.format(i)
+      player_name = f'player_{i}'
       # TODO(alimuldal): Would look cool if these were textured.
       material = root.asset.add('material', name=player_name, rgba=color)
-      player_markers = []
-      for j in range(num_per_player):
-        player_markers.append(
-            root.worldbody.add(
-                'site',
-                name='player_{}_move_{}'.format(i, j),
-                material=material))
+      player_markers = [
+          root.worldbody.add('site',
+                             name=f'player_{i}_move_{j}',
+                             material=material) for j in range(num_per_player)
+      ]
       all_markers.append(player_markers)
     self._num_players = len(player_colors)
     self._mjcf_model = root

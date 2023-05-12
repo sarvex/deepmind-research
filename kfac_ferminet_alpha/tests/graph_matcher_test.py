@@ -33,10 +33,7 @@ def tagged_autoencoder(all_params, x_in):
                                                 params[1],)
     layers_values.append((h_out, h_in))
     # Last layer does not have a nonlinearity
-    if i % 4 != 3:
-      h_in = jnp.tanh(h_out)
-    else:
-      h_in = h_out
+    h_in = jnp.tanh(h_out) if i % 4 != 3 else h_out
   h1, _ = loss_functions.register_normal_predictive_distribution(
       h_in, targets=x_in, weight=1.0)
   h2, t2 = loss_functions.register_normal_predictive_distribution(

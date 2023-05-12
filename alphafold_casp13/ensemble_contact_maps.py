@@ -61,9 +61,10 @@ def ensemble_distance_histograms(pickle_dirs, weights, output_dir):
   skipped = 0
   wrote = 0
   for t in targets:
-    dump_file = os.path.join(output_dir, t + '.pickle')
-    pickle_files = [os.path.join(pickle_dir, t + '.pickle')
-                    for pickle_dir in pickle_dirs]
+    dump_file = os.path.join(output_dir, f'{t}.pickle')
+    pickle_files = [
+        os.path.join(pickle_dir, f'{t}.pickle') for pickle_dir in pickle_dirs
+    ]
     _, new_dict = ensemble_one_distance_histogram(pickle_files, weights)
     if new_dict is not None:
       wrote += 1
@@ -87,13 +88,13 @@ def ensemble_one_distance_histogram(pickle_files, weights):
     if sequence is None:
       sequence = distance_histogram_dict['sequence']
     else:
-      assert sequence == distance_histogram_dict['sequence'], '%s vs %s' % (
-          sequence, distance_histogram_dict['sequence'])
+      assert (sequence == distance_histogram_dict['sequence']
+              ), f"{sequence} vs {distance_histogram_dict['sequence']}"
     dicts.append(distance_histogram_dict)
     assert dicts[-1]['probs'].shape[0] == dicts[-1]['probs'].shape[1], (
         '%d vs %d' % (dicts[-1]['probs'].shape[0], dicts[-1]['probs'].shape[1]))
-    assert (dicts[0]['probs'].shape[0:2] == dicts[-1]['probs'].shape[0:2]
-           ), ('%d vs %d' % (dicts[0]['probs'].shape, dicts[-1]['probs'].shape))
+    assert (dicts[0]['probs'].shape[:2] == dicts[-1]['probs'].shape[:2]
+            ), '%d vs %d' % (dicts[0]['probs'].shape, dicts[-1]['probs'].shape)
     if max_dim is None or max_dim < dicts[-1]['probs'].shape[2]:
       max_dim = dicts[-1]['probs'].shape[2]
   if len(dicts) != len(pickle_files):
@@ -114,7 +115,7 @@ def main(argv):
         'Supply as many weights as pickle_dirs, or no weights')
     weights = [float(w) for w in FLAGS.weights]
   else:
-    weights = [1.0 for w in range(num_dirs)]
+    weights = [1.0 for _ in range(num_dirs)]
 
   ensemble_distance_histograms(
       pickle_dirs=FLAGS.pickle_dirs,

@@ -47,8 +47,7 @@ def _cosine_decay(
   """Simple implementation of cosine decay from TF1."""
   global_step = jnp.minimum(global_step, max_steps).astype(jnp.float32)
   cosine_decay_value = 0.5 * (1 + jnp.cos(jnp.pi * global_step / max_steps))
-  decayed_learning_rate = initial_value * cosine_decay_value
-  return decayed_learning_rate
+  return initial_value * cosine_decay_value
 
 
 def learning_schedule(
@@ -62,9 +61,9 @@ def learning_schedule(
   # Compute LR & Scaled LR
   if not use_schedule:
     return base_learning_rate
-  warmup_learning_rate = (
-      global_step.astype(jnp.float32) / int(warmup_steps) *
-      base_learning_rate if warmup_steps > 0 else base_learning_rate)
+  warmup_learning_rate = ((global_step.astype(jnp.float32) / warmup_steps *
+                           base_learning_rate)
+                          if warmup_steps > 0 else base_learning_rate)
 
   # Cosine schedule after warmup.
   decay_learning_rate = _cosine_decay(global_step - warmup_steps,

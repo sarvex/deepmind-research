@@ -298,10 +298,10 @@ class AudioTextVideoEmbedding(hk.Module):
         use_bn_out2=self._cfg_aud_txt["totxt_bn_after_proj"],
         name1="audio_embd",
         name2="audio2txt_embd")
-    audio_embd = {}
-
-    audio_embd["tovid"] = aud2vid_embd_module(audio_representation,
-                                              is_training=is_training)
+    audio_embd = {
+        "tovid": aud2vid_embd_module(audio_representation,
+                                     is_training=is_training)
+    }
 
     # Computes the projection to the text domain depending on the MM graph mode.
     if (self._mm_embedding_graph.startswith("fac") and
@@ -336,9 +336,9 @@ class AudioTextVideoEmbedding(hk.Module):
         use_bn_out2=self._cfg_aud_txt["toaud_bn_after_proj"],
         name1="txt_embd",
         name2="txt2audio_embd")
-    txt_embd = {}
-    txt_embd["tovid"] = txt2vid_embd_module(txt_representation,
-                                            is_training=is_training)
+    txt_embd = {
+        "tovid": txt2vid_embd_module(txt_representation, is_training=is_training)
+    }
     txt_embd["toaud"] = txt2aud_embd_module(txt_representation,
                                             is_training=is_training)
 
@@ -440,8 +440,7 @@ class VisualModule(hk.Module):
 
   def __call__(self, images, is_training):
     """Connects graph to images."""
-    features = self._cnn(images, is_training=is_training)
-    return features
+    return self._cnn(images, is_training=is_training)
 
 
 class AudioModule(hk.Module):
@@ -481,10 +480,7 @@ class AudioModule(hk.Module):
                is_training,
                return_intermediate=False):
     """Connects graph to audio spectrogram."""
-    final_endpoint = "output"
-    if return_intermediate:
-      final_endpoint = "last_conv"
-
+    final_endpoint = "last_conv" if return_intermediate else "output"
     return self._cnn(audio_spectrogram,
                      is_training=is_training,
                      final_endpoint=final_endpoint)

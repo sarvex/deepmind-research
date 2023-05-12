@@ -39,8 +39,7 @@ def normalize_regression_loss(regression_loss, predictions):
   # 2) E_{x uniform, prediction uniform}[loss(x, prediction)] is as before.
   # Divides MSE regression loss by E[(prediction-x)^2]; assumes x=[-1,1]
   normalization = 2./3.
-  normalized_loss = regression_loss / ((1./3 + predictions**2) / normalization)
-  return normalized_loss
+  return regression_loss / ((1./3 + predictions**2) / normalization)
 
 
 def equal32(x, y):
@@ -60,7 +59,7 @@ def get_std_factor_from_confidence_percent(percent):
 def get_all_metric_names(task_type, model_uncertainty, loss_config,  # pylint: disable=unused-argument
                          mode='eval', return_dict=True):
   """Get all the scalar fields produced by compute_loss_and_metrics."""
-  names = ['regularization_loss', 'prediction_accuracy', str(mode)+'_loss']
+  names = ['regularization_loss', 'prediction_accuracy', f'{str(mode)}_loss']
   if task_type == TASK_CLASSIFICATION:
     names += ['classification_loss']
   else:
@@ -71,10 +70,7 @@ def get_all_metric_names(task_type, model_uncertainty, loss_config,  # pylint: d
                 'avg_sigma', 'var_sigma',
                 'percent_in_conf_interval', 'error_sigma_correlation',
                 'avg_prob']
-  if return_dict:
-    return {name: 0. for name in names}
-  else:
-    return names
+  return {name: 0. for name in names} if return_dict else names
 
 
 def compute_loss_and_metrics(mu, log_sigma_sq,
@@ -84,11 +80,8 @@ def compute_loss_and_metrics(mu, log_sigma_sq,
                              mode='train'):
   """Computes loss statistics and other metrics."""
 
-  scalars_to_log = dict()
-  vectors_to_log = dict()
-  scalars_to_log['regularization_loss'] = regularization_loss
-  vectors_to_log['mu'] = mu
-
+  scalars_to_log = {'regularization_loss': regularization_loss}
+  vectors_to_log = {'mu': mu}
   if task_type == TASK_CLASSIFICATION:
     cross_entropy = tf.nn.sparse_softmax_cross_entropy_with_logits(
         logits=mu, labels=labels, name='cross_entropy')
@@ -155,7 +148,7 @@ def compute_loss_and_metrics(mu, log_sigma_sq,
     else:
       total_loss = avg_regression_loss
 
-  loss_name = str(mode)+'_loss'
+  loss_name = f'{str(mode)}_loss'
   total_loss = tf.add(total_loss, regularization_loss, name=loss_name)
   scalars_to_log[loss_name] = total_loss
   vectors_to_log['correct_predictions'] = correct_predictions

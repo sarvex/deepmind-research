@@ -144,9 +144,7 @@ class EncodeProcessDecode(snt.AbstractModule):
           nodes=tf.concat([input_graph.nodes, broadcasted_globals], axis=-1),
           globals=None)
 
-    # Encode the node and edge features.
-    latent_graph_0 = self._encoder_network(input_graph)
-    return latent_graph_0
+    return self._encoder_network(input_graph)
 
   def _process(
       self, latent_graph_0: gn.graphs.GraphsTuple) -> gn.graphs.GraphsTuple:
@@ -161,8 +159,7 @@ class EncodeProcessDecode(snt.AbstractModule):
           processor_network_k, latent_graph_prev_k)
       latent_graph_prev_k = latent_graph_k
 
-    latent_graph_m = latent_graph_k
-    return latent_graph_m
+    return latent_graph_k
 
   def _process_step(
       self, processor_network_k: snt.Module,

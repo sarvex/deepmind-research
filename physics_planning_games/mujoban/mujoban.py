@@ -421,7 +421,7 @@ class Mujoban(composer.Task):
       if target.activated:
         target.activator.rgba = _BOX_PRESSED_RGBA
     self._update_entity_pixel_layers(physics)
-    self._is_solved = all([target.activated for target in self._targets])
+    self._is_solved = all(target.activated for target in self._targets)
     if self._is_solved:
       self._discount = 0.
 

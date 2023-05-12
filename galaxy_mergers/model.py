@@ -67,15 +67,15 @@ class ResNet(snt.Module):
     # Number of blocks in each group for ResNet.
     if len(blocks_per_group_list) != 4:
       raise ValueError(
-          "`blocks_per_group_list` must be of length 4 not {}".format(
-              len(blocks_per_group_list)))
+          f"`blocks_per_group_list` must be of length 4 not {len(blocks_per_group_list)}"
+      )
     self._blocks_per_group_list = blocks_per_group_list
 
     # Number of channels in each group for ResNet.
     if len(channels_per_group_list) != 4:
       raise ValueError(
-          "`channels_per_group_list` must be of length 4 not {}".format(
-              len(channels_per_group_list)))
+          f"`channels_per_group_list` must be of length 4 not {len(channels_per_group_list)}"
+      )
     self._channels_per_group_list = channels_per_group_list
     self._use_additional_features = use_additional_features
     self._additional_features_mode = additional_features_mode
@@ -96,16 +96,15 @@ class ResNet(snt.Module):
 
     self._block_groups = []
     strides = [1, 2, 2, 2]
-    for i in range(4):
-      self._block_groups.append(
-          snt.nets.resnet.BlockGroup(
-              channels=self._channels_per_group_list[i],
-              num_blocks=self._blocks_per_group_list[i],
-              stride=strides[i],
-              bn_config=bn_config,
-              resnet_v2=resnet_v2,
-              name="block_group_%d" % (i)))
-
+    self._block_groups.extend(
+        snt.nets.resnet.BlockGroup(
+            channels=self._channels_per_group_list[i],
+            num_blocks=self._blocks_per_group_list[i],
+            stride=strides[i],
+            bn_config=bn_config,
+            resnet_v2=resnet_v2,
+            name="block_group_%d" % (i),
+        ) for i in range(4))
     if self._resnet_v2:
       self._final_batchnorm = snt.BatchNorm(
           create_scale=True,
@@ -127,9 +126,9 @@ class ResNet(snt.Module):
             **bn_config)
       elif self._additional_features_mode == "per_block":
         self._feature_repr = []
-        for i, ch in enumerate(self._channels_per_group_list):
-          self._feature_repr.append(
-              LinearBNReLU(output_size=ch, name=f"features_{i}", **bn_config))
+        self._feature_repr.extend(
+            LinearBNReLU(output_size=ch, name=f"features_{i}", **bn_config)
+            for i, ch in enumerate(self._channels_per_group_list))
       else:
         raise ValueError(f"Unsupported addiitonal features mode: "
                          f"{additional_features_mode}")

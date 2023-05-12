@@ -82,7 +82,7 @@ class CNN(snt.AbstractModule):
     elif self._mode == "avg_pool":
       net = tf.reduce_mean(net, axis=[1, 2])
     else:
-      raise KeyError('Unknown mode "{}"'.format(self._mode))
+      raise KeyError(f'Unknown mode "{self._mode}"')
     # run MLP
     output = sg.guard(mlp(net), "B, Y")
     return FlatParameters(unflatten(output))
@@ -261,7 +261,7 @@ class BroadcastConv(snt.AbstractModule):
       coords = tf.tile(xy_basis, sg["B,  1, 1, 1"])[..., 1:]
       return tf.concat([output, coords], axis=-1)
     else:
-      raise KeyError('Unknown coord_type: "{}"'.format(self._coord_type))
+      raise KeyError(f'Unknown coord_type: "{self._coord_type}"')
 
 
 class LSTM(snt.RNNCore):

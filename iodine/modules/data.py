@@ -168,8 +168,7 @@ class IODINEDataset(snt.AbstractModule):
         "mask": tf.placeholder(dtype=tf.float32, shape=sg["B, T, L, H, W, 1"]),
         "visibility": tf.placeholder(dtype=tf.float32, shape=sg["B, L"]),
         "factors": {
-            name:
-            tf.placeholder(dtype=dtype, shape=sg["B, L, {}".format(size)])
+            name: tf.placeholder(dtype=dtype, shape=sg[f"B, L, {size}"])
             for name, (dtype, size) in self.factors
         },
     }

@@ -60,7 +60,8 @@ def build_update_fn(
           axis=-1,
           create_scale=True,
           create_offset=True,
-          name=name + '_layer_norm')
+          name=f'{name}_layer_norm',
+      )
     elif normalization_type == 'batch_norm':
       batch_norm = hk.BatchNorm(
           create_scale=True,

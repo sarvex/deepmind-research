@@ -40,8 +40,8 @@ def distance_histogram_dict(f):
 
   num_res = len(contact_dict['sequence'])
 
-  if not all(key in contact_dict.keys()
-             for key in ['probs', 'num_bins', 'min_range', 'max_range']):
+  if any(key not in contact_dict.keys()
+         for key in ['probs', 'num_bins', 'min_range', 'max_range']):
     raise ValueError('The pickled contact dict doesn\'t contain all required '
                      'keys: probs, num_bins, min_range, max_range but %s.' %
                      contact_dict.keys())

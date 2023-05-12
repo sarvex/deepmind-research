@@ -96,10 +96,7 @@ def _replicate(x, devices=None):
 
 def broadcast(obj):
   """Broadcasts an object to all devices."""
-  if obj is not None and not isinstance(obj, bool):
-    return _replicate(obj)
-  else:
-    return obj
+  return obj if obj is None or isinstance(obj, bool) else _replicate(obj)
 
 
 def split_tree(tuple_tree, base_tree, n):

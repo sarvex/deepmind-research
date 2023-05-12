@@ -207,17 +207,14 @@ class OptionValueNet(snt.AbstractModule):
       net = snt.Linear(output_size=self._n_policies * self._n_actions)(net)
       net = snt.BatchReshape([self._n_policies, self._n_actions])(net)
       values.append(net)
-    values = tf.stack(values, axis=2)
-    return values
+    return tf.stack(values, axis=2)
 
   def gpi(self, observation, cumulant_weights):
     q_values = self.__call__(tf.expand_dims(observation, axis=0))[0]
     q_w = tf.tensordot(q_values, cumulant_weights, axes=[1, 0])  # [P,a]
     q_w_actions = tf.reduce_max(q_w, axis=0)
 
-    action = tf.cast(tf.argmax(q_w_actions), tf.int32)
-
-    return action
+    return tf.cast(tf.argmax(q_w_actions), tf.int32)
 
   @property
   def num_cumulants(self):

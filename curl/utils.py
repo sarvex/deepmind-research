@@ -34,12 +34,12 @@ def generate_gaussian(logits, sigma_nonlin, sigma_param):
   elif sigma_nonlin == 'softplus':
     sigma = tf.nn.softplus(sigma)
   else:
-    raise ValueError('Unknown sigma_nonlin {}'.format(sigma_nonlin))
+    raise ValueError(f'Unknown sigma_nonlin {sigma_nonlin}')
 
   if sigma_param == 'var':
     sigma = tf.sqrt(sigma)
   elif sigma_param != 'std':
-    raise ValueError('Unknown sigma_param {}'.format(sigma_param))
+    raise ValueError(f'Unknown sigma_param {sigma_param}')
 
   return tfp.distributions.Normal(loc=mu, scale=sigma)
 
@@ -81,5 +81,4 @@ def maybe_center_crop(layer, target_hw):
   x_0, x_1 = border, l_height - border
   border = int((l_width - t_width) / 2)
   y_0, y_1 = border, l_width - border
-  layer_cropped = layer[:, x_0:x_1, y_0:y_1, :]
-  return layer_cropped
+  return layer[:, x_0:x_1, y_0:y_1, :]

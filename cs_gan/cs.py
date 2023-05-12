@@ -71,8 +71,6 @@ class CS(object):
         generator_inputs, self, data, is_training=True)
     optimisation_cost = utils.get_optimisation_cost(generator_inputs,
                                                     optimised_z)
-    debug_ops = {}
-
     initial_samples = self.generator(generator_inputs, is_training=True)
     generator_loss = tf.reduce_mean(self.gen_loss_fn(data, samples))
     # compute the RIP loss
@@ -86,11 +84,14 @@ class CS(object):
     total_loss = generator_loss + rip_loss
     optimization_components = self._build_optimization_components(
         generator_loss=total_loss)
-    debug_ops['rip_loss'] = rip_loss
-    debug_ops['recons_loss'] = tf.reduce_mean(
-        tf.norm(snt.BatchFlatten()(samples)
-                - snt.BatchFlatten()(data), axis=-1))
-
+    debug_ops = {
+        'rip_loss':
+        rip_loss,
+        'recons_loss':
+        tf.reduce_mean(
+            tf.norm(snt.BatchFlatten()(samples) - snt.BatchFlatten()(data),
+                    axis=-1)),
+    }
     debug_ops['z_step_size'] = self.z_step_size
     debug_ops['opt_cost'] = optimisation_cost
     debug_ops['gen_loss'] = generator_loss
@@ -138,17 +139,15 @@ class CS(object):
     step_vars = _get_and_check_variables(self._log_step_size_module)
 
     assert discriminator_loss is None
-    optimization_components = utils.OptimizationComponent(
-        generator_loss, generator_vars + metric_vars + step_vars)
-    return optimization_components
+    return utils.OptimizationComponent(generator_loss,
+                                       generator_vars + metric_vars + step_vars)
 
 
 def _get_and_check_variables(module):
-  module_variables = module.get_all_variables()
-  if not module_variables:
+  if module_variables := module.get_all_variables():
+    # TensorFlow optimizers require lists to be passed in.
+    return list(module_variables)
+  else:
     raise ValueError(
-        'Module {} has no variables! Variables needed for training.'.format(
-            module.module_name))
-
-  # TensorFlow optimizers require lists to be passed in.
-  return list(module_variables)
+        f'Module {module.module_name} has no variables! Variables needed for training.'
+    )

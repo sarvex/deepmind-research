@@ -76,10 +76,7 @@ CURRENT_STATE = 'meta/current_state/'
 def _is_same_state(state_1, state_2):
   if state_1.keys() != state_2.keys():
     return False
-  for k in state_1:
-    if not np.all(state_1[k] == state_2[k]):
-      return False
-  return True
+  return all(np.all(state_1[k] == state_2[k]) for k in state_1)
 
 
 def _singleton_or_none(iterable):
@@ -440,7 +437,7 @@ class PhasedBoxCarry(composer.Task):
             self._proto_modifier, random_state=random_state)
       prop = trajectory.create_props(
           priority_friction=self._priority_friction)[0]
-      prop.mjcf_model.model = 'prop_{}'.format(prop_id)
+      prop.mjcf_model.model = f'prop_{prop_id}'
       self._arena.add_free_entity(prop)
       self._props.append(prop)
       self._trajectory_for_prop.append(trajectory)

@@ -63,8 +63,8 @@ def dynamically_batch(graphs_tuple_iterator: Iterator[jraph.GraphsTuple],
     element_nodes, element_edges, element_graphs = _get_graph_size(element)
     if _is_over_batch_size(element, valid_batch_size):
       graph_size = element_nodes, element_edges, element_graphs
-      graph_size = {k: v for k, v in zip(_NUMBER_FIELDS, graph_size)}
-      batch_size = {k: v for k, v in zip(_NUMBER_FIELDS, valid_batch_size)}
+      graph_size = dict(zip(_NUMBER_FIELDS, graph_size))
+      batch_size = dict(zip(_NUMBER_FIELDS, valid_batch_size))
       raise RuntimeError("Found graph bigger than batch size. Valid Batch "
                          f"Size: {batch_size}, Graph Size: {graph_size}")
 
@@ -74,25 +74,22 @@ def dynamically_batch(graphs_tuple_iterator: Iterator[jraph.GraphsTuple],
       num_accumulated_nodes = element_nodes
       num_accumulated_edges = element_edges
       num_accumulated_graphs = element_graphs
-      continue
-    else:
-      # Otherwise check if there is space for the graph in the batch:
-      if ((num_accumulated_graphs + element_graphs > n_graph - 1) or
+    elif ((num_accumulated_graphs + element_graphs > n_graph - 1) or
           (num_accumulated_nodes + element_nodes > n_node - 1) or
           (num_accumulated_edges + element_edges > n_edge)):
-        # If there is, add it to the batch
-        batched_graph = _batch_np(accumulated_graphs)
-        yield jraph.pad_with_graphs(batched_graph, n_node, n_edge, n_graph)
-        accumulated_graphs = [element]
-        num_accumulated_nodes = element_nodes
-        num_accumulated_edges = element_edges
-        num_accumulated_graphs = element_graphs
-      else:
-        # Otherwise, return the old batch and start a new batch.
-        accumulated_graphs.append(element)
-        num_accumulated_nodes += element_nodes
-        num_accumulated_edges += element_edges
-        num_accumulated_graphs += element_graphs
+      # If there is, add it to the batch
+      batched_graph = _batch_np(accumulated_graphs)
+      yield jraph.pad_with_graphs(batched_graph, n_node, n_edge, n_graph)
+      accumulated_graphs = [element]
+      num_accumulated_nodes = element_nodes
+      num_accumulated_edges = element_edges
+      num_accumulated_graphs = element_graphs
+    else:
+      # Otherwise, return the old batch and start a new batch.
+      accumulated_graphs.append(element)
+      num_accumulated_nodes += element_nodes
+      num_accumulated_edges += element_edges
+      num_accumulated_graphs += element_graphs
 
   # We may still have data in batched graph.
   if accumulated_graphs:
@@ -132,4 +129,4 @@ def _is_over_batch_size(
     graph_batch_size: Tuple[int, int, int],
 ) -> bool:
   graph_size = _get_graph_size(graph)
-  return any([x > y for x, y in zip(graph_size, graph_batch_size)])
+  return any(x > y for x, y in zip(graph_size, graph_batch_size))

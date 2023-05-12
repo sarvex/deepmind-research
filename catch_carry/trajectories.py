@@ -93,8 +93,7 @@ def _get_prop_z_extent(prop_proto, quaternion):
   elif prop_proto.shape == mocap_pb2.Prop.SPHERE:
     return prop_proto.size[0]
   else:
-    raise NotImplementedError(
-        'Unsupported prop shape: {}'.format(prop_proto.shape))
+    raise NotImplementedError(f'Unsupported prop shape: {prop_proto.shape}')
 
 
 class WarehouseTrajectory(trajectory.Trajectory):
@@ -178,9 +177,8 @@ class SinglePropCarrySegmentedTrajectory(WarehouseTrajectory):
         was_in_pedestal_zone = True
     if len(crossings) < 3:
       raise RuntimeError(
-          'Failed to segment the given trajectory: '
-          'walker should cross the pedestal zone\'s boundary >= 3 times '
-          'but got {}'.format(len(crossings)))
+          f"Failed to segment the given trajectory: walker should cross the pedestal zone\'s boundary >= 3 times but got {len(crossings)}"
+      )
     elif len(crossings) == 3:
       crossings.append(len(self._proto.timesteps) - 1)
     elif len(crossings) > 4:

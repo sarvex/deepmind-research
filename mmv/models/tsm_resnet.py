@@ -146,9 +146,7 @@ class TSMResNetBlock(hk.Module):
         name='conv_2')(
             residual)
 
-    # NOTE: we do not use block multiplier.
-    output = shortcut + residual
-    return output
+    return shortcut + residual
 
 
 class TSMResNetUnit(hk.Module):

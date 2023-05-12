@@ -207,7 +207,7 @@ def run_model_on_dataset(evaluator, dataset, config, n_batches=16):
 
     for scalar_metric in scalar_metrics:
       v = scalar_metrics[scalar_metric]
-      val = v if isinstance(v, int) or isinstance(v, float) else v.numpy()
+      val = v if isinstance(v, (int, float)) else v.numpy()
       scalar_metrics_to_log[scalar_metric].append(val)
 
     for vector_metric in vector_metrics:

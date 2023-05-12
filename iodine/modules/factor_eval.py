@@ -52,7 +52,7 @@ class FactorRegressor(snt.AbstractModule):
     num_visible_obj = tf.reduce_sum(visibility)
 
     # Map z to predictions for all latents
-    sg.M = sum([m.size for m in self._mapping])
+    sg.M = sum(m.size for m in self._mapping)
     self.predictor = snt.Linear(sg.M, name="predict_latents")
     z_flat = sg.reshape(z, "B*K, Z")
     all_preds = sg.guard(self.predictor(z_flat), "B*K, M")
@@ -66,12 +66,12 @@ class FactorRegressor(snt.AbstractModule):
       with tf.name_scope(m.name):
         # preprocess, reshape, and tile
         lat_preprocess = self.get_preprocessing(m)
-        lat = sg.guard(
-            lat_preprocess(latent[m.name]), "B, L, {}".format(m.size))
+        lat = sg.guard(lat_preprocess(latent[m.name]), f"B, L, {m.size}")
         # compute mean over latent by training a variable using mse
         if m.type in {"scalar", "angle"}:
-          mvt = utils.OnlineMeanVarEstimator(
-              axis=[0, 1], ddof=1, name="{}_mean_var".format(m.name))
+          mvt = utils.OnlineMeanVarEstimator(axis=[0, 1],
+                                             ddof=1,
+                                             name=f"{m.name}_mean_var")
           mean_var_tot[m.name] = mvt(lat, visibility[:, :, tf.newaxis])
 
         lat = tf.reshape(lat, sg["B, L, 1"] + [-1])
@@ -83,9 +83,9 @@ class FactorRegressor(snt.AbstractModule):
     predictions = {}
     for m in self._mapping:
       with tf.name_scope(m.name):
-        assert m.name in latent, "{} not in {}".format(m.name, latent.keys())
+        assert m.name in latent, f"{m.name} not in {latent.keys()}"
         pred = all_preds[..., idx:idx + m.size]
-        predictions[m.name] = sg.guard(pred, "B, L, K, {}".format(m.size))
+        predictions[m.name] = sg.guard(pred, f"B, L, K, {m.size}")
         idx += m.size
 
     # compute error
@@ -93,8 +93,8 @@ class FactorRegressor(snt.AbstractModule):
     for m in self._mapping:
       with tf.name_scope(m.name):
         error_fn = self.get_error_func(m)
-        sg.guard(latents[m.name], "B, L, K, {}".format(m.size))
-        sg.guard(predictions[m.name], "B, L, K, {}".format(m.size))
+        sg.guard(latents[m.name], f"B, L, K, {m.size}")
+        sg.guard(predictions[m.name], f"B, L, K, {m.size}")
         err = error_fn(latents[m.name], predictions[m.name])
         sg.guard(err, "B, L, K")
         if total_pairwise_errors is None:
@@ -140,7 +140,7 @@ class FactorRegressor(snt.AbstractModule):
     for m in self._mapping:
       with tf.name_scope(m.name):
         pred = all_preds[:, idx:idx + m.size]
-        predictions[m.name] = sg.guard(pred, "B, {}".format(m.size))
+        predictions[m.name] = sg.guard(pred, f"B, {m.size}")
         idx += m.size
     return predictions
 

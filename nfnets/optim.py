@@ -39,7 +39,7 @@ class Optimizer(object):
     # Join params at top-level if params is a list of groups
     if isinstance(params, list):
       flatmap = type(hk.data_structures.to_immutable_dict({}))
-      if any([isinstance(group['params'], flatmap) for group in params]):
+      if any(isinstance(group['params'], flatmap) for group in params):
         params = hk.data_structures.merge(*[group['params']
                                             for group in params])
       else:
@@ -54,11 +54,12 @@ class Optimizer(object):
     group_dict = {key: key for key in defaults if key not in group}
     for key in group:
       if key != 'params':  # Reserved keyword 'params'
-        group_dict[key] = '%s_%s' % (key, suffix)
+        group_dict[key] = f'{key}_{suffix}'
         self._hyperparameters[group_dict[key]] = group[key]
     # Set up params2hyperparams
     def set_p2h(k, _):
       self._params2hyperparams['/'.join(k)] = group_dict
+
     tree.map_structure_with_path(set_p2h, group['params'])
 
   def create_param_groups(self, params, defaults):
@@ -431,8 +432,7 @@ class Fromage(Optimizer):
 
 def compute_norm(x, axis, keepdims):
   """Returns norm over arbitrary axis."""
-  norm = jnp.sum(x ** 2, axis=axis, keepdims=keepdims) ** 0.5
-  return norm
+  return jnp.sum(x ** 2, axis=axis, keepdims=keepdims) ** 0.5
 
 
 def unitwise_norm(x):
@@ -440,7 +440,7 @@ def unitwise_norm(x):
   if len(jnp.squeeze(x).shape) <= 1:  # Scalars and vectors
     axis = None
     keepdims = False
-  elif len(x.shape) in [2, 3]:  # Linear layers of shape IO
+  elif len(x.shape) in {2, 3}:  # Linear layers of shape IO
     axis = 0
     keepdims = True
   elif len(x.shape) == 4:  # Conv kernels of shape HWIO
@@ -505,7 +505,7 @@ class Hybrid(Optimizer):
   """
 
   def __init__(self, param_groups):
-    if any(['opt' not in group for group in param_groups]):
+    if any('opt' not in group for group in param_groups):
       raise ValueError('All parameter groups must have an opt key!')
     self.defaults = ChainMap(*[group['opt'].defaults for group in param_groups])
     super().__init__(param_groups, defaults=dict(self.defaults))

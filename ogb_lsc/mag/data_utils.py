@@ -112,10 +112,7 @@ def _log_path_decorator(fn):
 
 @_log_path_decorator
 def load_csr(path, debug=False):
-  if debug:
-    # Dummy matrix for debugging.
-    return sp.csr_matrix(np.zeros([10, 10]))
-  return sp.load_npz(str(path))
+  return sp.csr_matrix(np.zeros([10, 10])) if debug else sp.load_npz(str(path))
 
 
 @_log_path_decorator
@@ -136,9 +133,7 @@ def get_arrays(data_root="/data/",
 
   data_root = Path(data_root)
 
-  array_dict = {}
-  array_dict["paper_year"] = load_npy(data_root / RAW_NODE_YEAR_FILENAME)
-
+  array_dict = {"paper_year": load_npy(data_root / RAW_NODE_YEAR_FILENAME)}
   if k_fold_split_id is None:
     train_indices = load_npy(data_root / TRAIN_INDEX_FILENAME)
     valid_indices = load_npy(data_root / VALID_INDEX_FILENAME)
@@ -168,21 +163,18 @@ def get_arrays(data_root="/data/",
           data_root / EDGES_PAPER_PAPER_B, debug=use_dummy_adjacencies)
       paper_paper_index_t = load_csr(
           data_root / EDGES_PAPER_PAPER_B_T, debug=use_dummy_adjacencies)
-    array_dict.update(
-        dict(
-            author_institution_index=load_csr(
-                data_root / EDGES_AUTHOR_INSTITUTION,
-                debug=use_dummy_adjacencies),
-            institution_author_index=load_csr(
-                data_root / EDGES_INSTITUTION_AUTHOR,
-                debug=use_dummy_adjacencies),
-            author_paper_index=load_csr(
-                data_root / EDGES_AUTHOR_PAPER, debug=use_dummy_adjacencies),
-            paper_author_index=load_csr(
-                data_root / EDGES_PAPER_AUTHOR, debug=use_dummy_adjacencies),
-            paper_paper_index=paper_paper_index,
-            paper_paper_index_t=paper_paper_index_t,
-        ))
+    array_dict |= dict(
+        author_institution_index=load_csr(data_root / EDGES_AUTHOR_INSTITUTION,
+                                          debug=use_dummy_adjacencies),
+        institution_author_index=load_csr(data_root / EDGES_INSTITUTION_AUTHOR,
+                                          debug=use_dummy_adjacencies),
+        author_paper_index=load_csr(data_root / EDGES_AUTHOR_PAPER,
+                                    debug=use_dummy_adjacencies),
+        paper_author_index=load_csr(data_root / EDGES_PAPER_AUTHOR,
+                                    debug=use_dummy_adjacencies),
+        paper_paper_index=paper_paper_index,
+        paper_paper_index_t=paper_paper_index_t,
+    )
 
   if return_pca_embeddings:
     array_dict["bert_pca_129"] = np.load(
@@ -279,8 +271,7 @@ def get_graph_subsampling_dataset(
 
       graph = add_nodes_label(graph, arrays["paper_label"])
       graph = add_nodes_year(graph, arrays["paper_year"])
-      graph = tf_graphs.GraphsTuple(*graph)
-      yield graph
+      yield tf_graphs.GraphsTuple(*graph)
 
   sample_graph = next(generator())
 

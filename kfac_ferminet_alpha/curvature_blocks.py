@@ -236,11 +236,10 @@ class TwoKroneckerFactored(CurvatureBlock, abc.ABC):
     result = jnp.matmul(result, outputs_factor)
     result = result * scale + diagonal_weight * vec
 
-    if self.has_bias:
-      w_new, b_new = result[:-1], result[-1]
-      return w_new.reshape(w.shape), b_new
-    else:
+    if not self.has_bias:
       return result.reshape(w.shape),
+    w_new, b_new = result[:-1], result[-1]
+    return w_new.reshape(w.shape), b_new
 
 
 class DenseTwoKroneckerFactored(TwoKroneckerFactored):
@@ -413,7 +412,7 @@ class ScaleAndShiftFull(CurvatureBlock):
     (x,), (dy,) = info["inputs"], info["outputs_tangent"]
     utils.check_first_dim_is_batch_size(batch_size, x, dy)
 
-    grads = list()
+    grads = []
     if self._has_scale:
       # Scale gradients
       scale_shape = info["params"][0].shape
@@ -465,13 +464,12 @@ class ScaleAndShiftFull(CurvatureBlock):
     else:
       raise NotImplementedError()
 
-    if self._has_scale and self._has_shift:
-      scale_dims = int(vec[0].size)
-      scale_result = flat_result[:scale_dims].reshape(vec[0].shape)
-      shift_result = flat_result[scale_dims:].reshape(vec[1].shape)
-      return scale_result, shift_result
-    else:
+    if not self._has_scale or not self._has_shift:
       return flat_vec.reshape(vec[0].shape),
+    scale_dims = int(vec[0].size)
+    scale_result = flat_result[:scale_dims].reshape(vec[0].shape)
+    shift_result = flat_result[scale_dims:].reshape(vec[1].shape)
+    return scale_result, shift_result
 
 
 _default_tag_to_block: MutableMapping[str, CurvatureBlockCtor] = dict(

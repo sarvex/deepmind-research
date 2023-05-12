@@ -116,9 +116,7 @@ def optimise_and_sample(init_z, module, data, is_training):
 
 
 def get_optimisation_cost(initial_z, optimised_z):
-  optimisation_cost = tf.reduce_mean(
-      tf.reduce_sum((optimised_z - initial_z)**2, -1))
-  return optimisation_cost
+  return tf.reduce_mean(tf.reduce_sum((optimised_z - initial_z)**2, -1))
 
 
 def _project_z(z, project_method='clip'):
@@ -128,7 +126,7 @@ def _project_z(z, project_method='clip'):
   elif project_method == 'clip':
     z_p = tf.clip_by_value(z, -1, 1)
   else:
-    raise ValueError('Unknown project_method: {}'.format(project_method))
+    raise ValueError(f'Unknown project_method: {project_method}')
   return z_p
 
 
@@ -207,8 +205,7 @@ def get_train_dataset(data_processor, dataset, batch_size):
 
   # Batch the data and return the data batch.
   one_shot_iterator = dataset.batch(batch_size).make_one_shot_iterator()
-  data_batch = one_shot_iterator.get_next()
-  return data_batch
+  return one_shot_iterator.get_next()
 
 
 def get_generator(dataset):

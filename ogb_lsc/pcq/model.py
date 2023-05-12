@@ -84,14 +84,16 @@ def _build_mlp(
     activation=jax.nn.relu,
 ):
   """Builds an MLP, optionally with layernorm."""
-  net = hk.nets.MLP(
-      output_sizes=output_sizes, name=name + "_mlp", activation=activation)
+  net = hk.nets.MLP(output_sizes=output_sizes,
+                    name=f"{name}_mlp",
+                    activation=activation)
   if use_layer_norm:
     layer_norm = hk.LayerNorm(
         axis=-1,
         create_scale=True,
         create_offset=True,
-        name=name + "_layer_norm")
+        name=f"{name}_layer_norm",
+    )
     net = hk.Sequential([net, layer_norm])
   return jraph.concatenated_args(net)
 
@@ -230,14 +232,13 @@ class GraphPropertyEncodeProcessDecode(hk.Module):
 
     out = self._forward(graph, is_training)
 
-    if isinstance(self._loss_config, RegressionLossConfig):
-      normalized_targets = (
-          (targets - self._loss_config.mean) / self._loss_config.std)
-      per_graph_and_head_loss = _regression_loss(
-          out["globals"], normalized_targets, **self._loss_config.kwargs)
-    else:
+    if not isinstance(self._loss_config, RegressionLossConfig):
       raise TypeError(type(self._loss_config))
 
+    normalized_targets = (
+        (targets - self._loss_config.mean) / self._loss_config.std)
+    per_graph_and_head_loss = _regression_loss(
+        out["globals"], normalized_targets, **self._loss_config.kwargs)
     # Mask out nans
     if target_mask is None:
       per_graph_and_head_loss = jnp.mean(per_graph_and_head_loss, axis=1)
@@ -427,12 +428,11 @@ class GraphPropertyEncodeProcessDecode(hk.Module):
       inputs_to_global_decoder.append(graph.globals)
 
     out = net(jnp.concatenate(inputs_to_global_decoder, axis=-1))
-    out_dict = {}
-    out_dict["globals"] = out
-
-    # Note "linear" names are for compatibility with pre-trained model names.
-    out_dict["bond_one_hots"] = hk.Linear(
-        _NUM_EDGE_FEATURES, name="linear")(graph.edges)
+    out_dict = {
+        "globals": out,
+        "bond_one_hots": hk.Linear(_NUM_EDGE_FEATURES,
+                                   name="linear")(graph.edges),
+    }
     out_dict["atom_one_hots"] = hk.Linear(
         _NUM_NODE_FEATURES, name="linear_1")(graph.nodes)
     return out_dict
@@ -472,11 +472,9 @@ class GraphPropertyEncodeProcessDecode(hk.Module):
 
   def _get_loss(self, pred, targets, is_regression):
     if is_regression:
-      loss = ((pred - targets)**2).mean(axis=-1)
-    else:
-      targets /= jnp.maximum(1., jnp.sum(targets, axis=-1, keepdims=True))
-      loss = _softmax_cross_entropy(pred, targets)
-    return loss
+      return ((pred - targets)**2).mean(axis=-1)
+    targets /= jnp.maximum(1., jnp.sum(targets, axis=-1, keepdims=True))
+    return _softmax_cross_entropy(pred, targets)
 
 
 def get_utilization_scalars(

@@ -321,8 +321,7 @@ class HierarchicalProbUNet(snt.AbstractModule):
     if channels_per_block is None:
       channels_per_block = default_channels_per_block
     if down_channels_per_block is None:
-      down_channels_per_block =\
-        tuple([i / 2 for i in default_channels_per_block])
+      down_channels_per_block = tuple(i / 2 for i in default_channels_per_block)
     if initializers is None:
       initializers = {
           'w': tf.orthogonal_initializer(gain=1.0, seed=None),
@@ -405,9 +404,7 @@ class HierarchicalProbUNet(snt.AbstractModule):
     Returns: None
     """
     inputs = (seg, img)
-    if self._cache == inputs:
-      return
-    else:
+    if self._cache != inputs:
       self._q_sample = self._posterior(
           tf.concat([seg, img], axis=-1), mean=False)
       self._q_sample_mean = self._posterior(
@@ -419,7 +416,7 @@ class HierarchicalProbUNet(snt.AbstractModule):
       self._p_sample_z_q_mean = self._prior(
           img, z_q=self._q_sample_mean['used_latents'])
       self._cache = inputs
-      return
+    return
 
   def sample(self, img, mean=False, z_q=None):
     """Sample a segmentation from the prior, given an input image.
@@ -457,10 +454,7 @@ class HierarchicalProbUNet(snt.AbstractModule):
       A segmentation tensor of shape (b,h,w,num_classes).
     """
     self._build(seg, img)
-    if mean:
-      prior_out = self._p_sample_z_q_mean
-    else:
-      prior_out = self._p_sample_z_q
+    prior_out = self._p_sample_z_q_mean if mean else self._p_sample_z_q
     encoder_features = prior_out['encoder_features']
     decoder_features = prior_out['decoder_features']
     return self._f_comb(encoder_features=encoder_features,
@@ -526,7 +520,6 @@ class HierarchicalProbUNet(snt.AbstractModule):
       A dictionary holding the loss (with key 'loss') and the tensorboard
       summaries (with key 'summaries').
     """
-    summaries = {}
     top_k_percentage = self._loss_kwargs['top_k_percentage']
     deterministic = self._loss_kwargs['deterministic_top_k']
     rec_loss = self.rec_loss(seg, img, mask, top_k_percentage, deterministic)
@@ -535,18 +528,19 @@ class HierarchicalProbUNet(snt.AbstractModule):
     kl_sum = tf.reduce_sum(
         tf.stack([kl for _, kl in kl_dict.iteritems()], axis=-1))
 
-    summaries['rec_loss_mean'] = rec_loss['mean']
-    summaries['rec_loss_sum'] = rec_loss['sum']
-    summaries['kl_sum'] = kl_sum
+    summaries = {
+        'rec_loss_mean': rec_loss['mean'],
+        'rec_loss_sum': rec_loss['sum'],
+        'kl_sum': kl_sum,
+    }
     for level, kl in kl_dict.iteritems():
-      summaries['kl_{}'.format(level)] = kl
+      summaries[f'kl_{level}'] = kl
 
     # Set up a regular ELBO objective.
     if self._loss_kwargs['type'] == 'elbo':
       loss = rec_loss['sum'] + self._loss_kwargs['beta'] * kl_sum
       summaries['elbo_loss'] = loss
 
-    # Set up a GECO objective (ELBO with a reconstruction constraint).
     elif self._loss_kwargs['type'] == 'geco':
       ma_rec_loss = self._moving_average(rec_loss['sum'])
       mask_sum_per_instance = tf.reduce_sum(rec_loss['mask'], axis=-1)
@@ -562,8 +556,8 @@ class HierarchicalProbUNet(snt.AbstractModule):
       summaries['num_valid_pixels'] = num_valid_pixels
       summaries['lagmul'] = lagmul
     else:
-      raise NotImplementedError('Loss type {} not implemeted!'.format(
-          self._loss_kwargs['type']))
+      raise NotImplementedError(
+          f"Loss type {self._loss_kwargs['type']} not implemeted!")
 
     return dict(supervised_loss=loss, summaries=summaries)
 

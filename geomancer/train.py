@@ -105,14 +105,14 @@ def make_product_manifold(specification, npts):
     sphere_spec = re.search(r'S\^([0-9]+)', spec)  # matches "S^<numbers>"
 
     if sphere_spec is not None:
-      dim = int(sphere_spec.group(1))
+      dim = int(sphere_spec[1])
       spec_array[1, i] = dim
       latent_dim += dim
       dat = np.random.randn(npts, dim+1)
       dat /= np.tile(np.sqrt(np.sum(dat**2, axis=1)[..., None]),
                      [1, dim+1])
     elif so_spec is not None:
-      dim = int(so_spec.group(1))
+      dim = int(so_spec[1])
       spec_array[0, i] = dim
       latent_dim += dim * (dim - 1) // 2
       dat = [np.ndarray.flatten(special_ortho_group.rvs(dim), order='C')

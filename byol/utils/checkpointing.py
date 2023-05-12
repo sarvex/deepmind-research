@@ -67,16 +67,16 @@ class Checkpointer:
             lambda x: jax.device_get(x[0]), experiment_state),
         step=step,
         rng=rng)
-    with open(self._checkpoint_path + '_tmp', 'wb') as checkpoint_file:
+    with open(f'{self._checkpoint_path}_tmp', 'wb') as checkpoint_file:
       dill.dump(checkpoint_data, checkpoint_file, protocol=2)
     try:
-      os.rename(self._checkpoint_path, self._checkpoint_path + '_old')
+      os.rename(self._checkpoint_path, f'{self._checkpoint_path}_old')
       remove_old = True
     except FileNotFoundError:
       remove_old = False  # No previous checkpoint to remove
-    os.rename(self._checkpoint_path + '_tmp', self._checkpoint_path)
+    os.rename(f'{self._checkpoint_path}_tmp', self._checkpoint_path)
     if remove_old:
-      os.remove(self._checkpoint_path + '_old')
+      os.remove(f'{self._checkpoint_path}_old')
     self._last_checkpoint_time = current_time
 
   def maybe_load_checkpoint(

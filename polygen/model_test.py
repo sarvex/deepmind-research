@@ -93,8 +93,9 @@ class VertexModelTest(tf.test.TestCase):
       sess.run(tf.global_variables_initializer())
       sample_dict_np = sess.run(sample_dict)
       in_range = np.logical_and(
-          0 <= sample_dict_np['vertices'],
-          sample_dict_np['vertices'] <= 2**_QUANTIZATION_BITS).all()
+          sample_dict_np['vertices'] >= 0,
+          sample_dict_np['vertices'] <= 2**_QUANTIZATION_BITS,
+      ).all()
       self.assertTrue(in_range)
 
 
@@ -151,8 +152,9 @@ class FaceModelTest(tf.test.TestCase):
           {context['vertices']: vertices,
            context['vertices_mask']: vertices_mask})
       in_range = np.logical_and(
-          0 <= sample_dict_np['faces'],
-          sample_dict_np['faces'] <= _NUM_INPUT_VERTS + 1).all()
+          sample_dict_np['faces'] >= 0,
+          sample_dict_np['faces'] <= _NUM_INPUT_VERTS + 1,
+      ).all()
       self.assertTrue(in_range)
 
 if __name__ == '__main__':

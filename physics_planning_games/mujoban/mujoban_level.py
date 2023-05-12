@@ -112,8 +112,9 @@ class MujobanLevel(labmaze.BaseMaze):
     self._num_boxes = (self._entity_layer == BOX_CHAR).sum()
     num_targets = (self._entity_layer == TARGET_CHAR).sum()
     if num_targets != self._num_boxes:
-      raise ValueError('Number of targets {} should equal number of boxes {}.'
-                       .format(num_targets, self._num_boxes))
+      raise ValueError(
+          f'Number of targets {num_targets} should equal number of boxes {self._num_boxes}.'
+      )
 
   @property
   def num_boxes(self):

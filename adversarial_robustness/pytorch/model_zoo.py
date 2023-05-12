@@ -98,13 +98,14 @@ class _BlockGroup(nn.Module):
   def __init__(self, num_blocks, in_planes, out_planes, stride,
                activation_fn=nn.ReLU):
     super().__init__()
-    block = []
-    for i in range(num_blocks):
-      block.append(
-          _Block(i == 0 and in_planes or out_planes,
-                 out_planes,
-                 i == 0 and stride or 1,
-                 activation_fn=activation_fn))
+    block = [
+        _Block(
+            i == 0 and in_planes or out_planes,
+            out_planes,
+            i == 0 and stride or 1,
+            activation_fn=activation_fn,
+        ) for i in range(num_blocks)
+    ]
     self.block = nn.Sequential(*block)
 
   def forward(self, x):

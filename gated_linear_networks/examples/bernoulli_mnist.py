@@ -166,10 +166,7 @@ def main(unused_argv):
       total_accuracy = float(jnp.mean(accuracies))
 
       # Report statistics.
-      print({
-          'step': step,
-          'accuracy': float(total_accuracy),
-      })
+      print({'step': step, 'accuracy': total_accuracy})
 
     if MAX_TRAIN_STEPS.value is not None and step >= MAX_TRAIN_STEPS.value:
       return

@@ -186,7 +186,7 @@ class Experiment(experiment.AbstractExperiment):
     output_dir = os.path.join(self.config.predictions_dir,
                               _get_step_date_label(global_step))
     os.makedirs(output_dir, exist_ok=True)
-    output_path = os.path.join(output_dir, split + '.dill')
+    output_path = os.path.join(output_dir, f'{split}.dill')
 
     with open(output_path, 'wb') as f:
       dill.dump(predictions, f)
@@ -286,8 +286,7 @@ class Experiment(experiment.AbstractExperiment):
   ) -> np.ndarray:
     """Returns predictions for all the graphs in the dataset split."""
     model_out, _ = self.eval_apply(params, state, rng, **graph._asdict())
-    prediction = np.squeeze(model_out['globals'], axis=1)
-    return prediction
+    return np.squeeze(model_out['globals'], axis=1)
 
   def _get_predictions(
       self,
@@ -423,9 +422,7 @@ def _setup_signals(save_model_fn):
 
 def main(argv, experiment_class: experiment.AbstractExperiment):
 
-  # Maybe restore a model.
-  restore_path = FLAGS.config.restore_path
-  if restore_path:
+  if restore_path := FLAGS.config.restore_path:
     _restore_state_to_in_memory_checkpointer(restore_path)
 
   # Maybe save a model.

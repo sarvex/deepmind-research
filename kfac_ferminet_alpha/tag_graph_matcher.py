@@ -41,32 +41,27 @@ def match_nodes(g1, g2, mapping, node1, node2):
   if not kfac_node_match(g1.nodes[node1], g2.nodes[node2]):
     return False
   # Check predecessors
-  p1 = set(n for n in g1.predecessors(node1) if n in mapping.keys())
-  p2 = set(n for n in g2.predecessors(node2) if n in mapping.values())
+  p1 = {n for n in g1.predecessors(node1) if n in mapping.keys()}
+  p2 = {n for n in g2.predecessors(node2) if n in mapping.values()}
   if len(p1) != len(p2):
     return False
   for p1_i in p1:
     if mapping[p1_i] not in p2:
       return False
   # Check successors
-  s1 = set(n for n in g1.successors(node1) if n in mapping.keys())
-  s2 = set(n for n in g2.successors(node2) if n in mapping.values())
-  if len(s1) != len(s2):
-    return False
-  for s1_i in s1:
-    if mapping[s1_i] not in s2:
-      return False
-  return True
+  s1 = {n for n in g1.successors(node1) if n in mapping.keys()}
+  s2 = {n for n in g2.successors(node2) if n in mapping.values()}
+  return False if len(s1) != len(s2) else all(mapping[s1_i] in s2 for s1_i in s1)
 
 
 def generate_candidates(g1, g2, mapping, node1, node2):
   """Generates the initial candidates for graph search."""
   # Check predecessors
-  p1 = set(n for n in g1.predecessors(node1) if n not in mapping.keys())
-  p2 = set(n for n in g2.predecessors(node2) if n not in mapping.values())
+  p1 = {n for n in g1.predecessors(node1) if n not in mapping.keys()}
+  p2 = {n for n in g2.predecessors(node2) if n not in mapping.values()}
   candidates = ordered_set.OrderedSet(itertools.product(p1, p2))
-  s1 = set(n for n in g1.successors(node1) if n not in mapping.keys())
-  s2 = set(n for n in g2.successors(node2) if n not in mapping.values())
+  s1 = {n for n in g1.successors(node1) if n not in mapping.keys()}
+  s2 = {n for n in g2.successors(node2) if n not in mapping.values()}
   candidates.update(list(itertools.product(s1, s2)))
   return candidates
 
@@ -83,23 +78,23 @@ def find_mappings(pattern, graph, mapping, terminals):
     for s1 in pattern.successors(node1):
       if s1 not in mapping.keys():
         for s2 in graph.successors(mapping[node1]):
-          if s2 not in mapping.values():
-            if s1 not in terminals or s2 not in terminals[s1]:
-              if match_nodes(pattern, graph, mapping, s1, s2):
-                mapping[s1] = s2
-                mappings.update(
-                    find_mappings(pattern, graph, mapping, terminals))
-                mapping.pop(s1)
+          if (s2 not in mapping.values()
+              and (s1 not in terminals or s2 not in terminals[s1])
+              and match_nodes(pattern, graph, mapping, s1, s2)):
+            mapping[s1] = s2
+            mappings.update(
+                find_mappings(pattern, graph, mapping, terminals))
+            mapping.pop(s1)
     for p1 in pattern.predecessors(node1):
       if p1 not in mapping.keys():
         for p2 in graph.predecessors(mapping[node1]):
-          if p2 not in mapping.values():
-            if p1 not in terminals or p2 not in terminals[p1]:
-              if match_nodes(pattern, graph, mapping, p1, p2):
-                mapping[p1] = p2
-                mappings.update(
-                    find_mappings(pattern, graph, mapping, terminals))
-                mapping.pop(p1)
+          if (p2 not in mapping.values()
+              and (p1 not in terminals or p2 not in terminals[p1])
+              and match_nodes(pattern, graph, mapping, p1, p2)):
+            mapping[p1] = p2
+            mappings.update(
+                find_mappings(pattern, graph, mapping, terminals))
+            mapping.pop(p1)
   return mappings
 
 
@@ -108,10 +103,9 @@ def match_pattern(pattern, graph):
   if USE_NETWORKX:
     matcher = isomorphism.GraphMatcher(
         graph, pattern, node_match=kfac_node_match)
-    mappings = list(
-        dict((k, v)
-             for v, k in mapping.items())
-        for mapping in matcher.subgraph_isomorphisms_iter())
+    mappings = [{k: v
+                 for v, k in mapping.items()}
+                for mapping in matcher.subgraph_isomorphisms_iter()]
   else:
     mapping = collections.OrderedDict()
     params1 = [n for n in pattern.nodes if pattern.nodes[n]["op"] == "param"]
@@ -127,11 +121,11 @@ def match_pattern(pattern, graph):
       mapping.pop(node1)
       for v in terminals.values():
         v.clear()
-    mappings = list(dict(mapping) for mapping in mappings)
+    mappings = [dict(mapping) for mapping in mappings]
 
   var_mappings = []
   for mapping in mappings:
-    var_mappings.append(dict())
+    var_mappings.append({})
     for k, v in mapping.items():
       cond = pattern.nodes[k]["op"] in ("param", "array")
       source = pattern.nodes[k]["var"] if cond else k
@@ -143,9 +137,7 @@ def match_pattern(pattern, graph):
 
 def read_env(env, var):
   # Literals are values baked into the Jaxpr
-  if isinstance(var, jax.core.Literal):
-    return var.val
-  return env[var]
+  return var.val if isinstance(var, jax.core.Literal) else env[var]
 
 
 def write_env(env, var, val):
@@ -153,11 +145,10 @@ def write_env(env, var, val):
 
 
 def abstract_single_value(value):
-  if isinstance(value, jnp.ndarray):
-    value = jax.ShapedArray(np.shape(value), np.result_type(value))
-    return pe.PartialVal.unknown(value)
-  else:
+  if not isinstance(value, jnp.ndarray):
     return value
+  value = jax.ShapedArray(np.shape(value), np.result_type(value))
+  return pe.PartialVal.unknown(value)
 
 
 def abstract_args(args):
@@ -198,8 +189,7 @@ def clean_jaxpr_eqns(jaxpr, preserve_tags=True):
       check = check or preserve_tags
     if check:
       eqns.append(eqn)
-      new_dependants = set(
-          v for v in eqn.invars if not isinstance(v, jax_core.Literal))
+      new_dependants = {v for v in eqn.invars if not isinstance(v, jax_core.Literal)}
       dependants = dependants.union(new_dependants)
   # Dependants should only be invars
   dependants = dependants - set(jaxpr.invars + jaxpr.constvars)
@@ -218,7 +208,7 @@ def broadcast_merger(f):
     jaxpr, consts = typed_jaxpr.jaxpr, typed_jaxpr.literals
 
     # Mapping from variable -> value
-    env = dict()
+    env = {}
     read = functools.partial(read_env, env)
     write = functools.partial(write_env, env)
 
@@ -234,7 +224,7 @@ def broadcast_merger(f):
     jax_util.safe_map(write, jaxpr.constvars, consts)
 
     # Loop through equations and evaluate primitives using `bind`
-    broadcasts_outputs = dict()
+    broadcasts_outputs = {}
     for eqn in clean_jaxpr_eqns(jaxpr):
       # We ignore broadcasting of constants
       if (eqn.primitive.name == "broadcast_in_dim" and
@@ -269,7 +259,7 @@ class JaxGraph(NamedTuple):
   tagging_func: Any
 
 
-SPECIAL_OP_COMPARE_RULES = dict()
+SPECIAL_OP_COMPARE_RULES = {}
 
 
 def default_compare(node1, node2):
@@ -278,19 +268,14 @@ def default_compare(node1, node2):
   params1, params2 = node1["eqn"].params, node2["eqn"].params
   if set(params1.keys()) != set(params2.keys()):
     return False
-  for k in params1.keys():
-    if params1[k] != params2[k]:
-      return False
-  return True
+  return all(params1[k] == params2[k] for k in params1.keys())
 
 
 def reshape_compare(node1, node2):
   """Compares two reshape nodes."""
   assert node1["op"] == node2["op"] == "reshape"
   params1, params2 = node1["eqn"].params, node2["eqn"].params
-  if params1["dimensions"] != params2["dimensions"]:
-    return False
-  return True
+  return params1["dimensions"] == params2["dimensions"]
 
 
 def broadcast_in_dim_compare(node1, node2):
@@ -364,7 +349,7 @@ def var_to_str(var):
   str_rep = ""
   while c > 25:
     str_rep += chr(c % 26 + ord("a"))
-    c = c // 26
+    c //= 26
   str_rep += chr(c + ord("a"))
   return str_rep[::-1]
 
@@ -465,7 +450,7 @@ def auto_register_tags(func,
   """Transform the function to one that is populated with tags."""
   func = broadcast_merger(func)
   graph = function_to_jax_graph(func, func_args, params_index=params_index)
-  matches = dict()
+  matches = {}
 
   # Extract the tagged losses variables and all their ancestors
   loss_output_vars = []
@@ -486,8 +471,8 @@ def auto_register_tags(func,
   sub_graph = nx.induced_subgraph(graph.digraph, loss_ancestors)
 
   # First collect all parameters that are already part of a layer tag
-  tagged_params = dict()
-  pattern_counters = dict()
+  tagged_params = {}
+  pattern_counters = {}
   for tag_node in (
       node for node in sub_graph.nodes if node.startswith("__layer_tag")):
     inputs = graph.digraph.nodes[tag_node]["eqn"].invars
@@ -531,7 +516,7 @@ def auto_register_tags(func,
           for param in match_map.values():
             if param in graph.params:
               match_params.add(param)
-              if param in tagged_params.keys():
+              if param in tagged_params:
                 match_params_already_tagged = True
           # Register the match only if no parameters are already registered
           if not match_params_already_tagged:
@@ -608,7 +593,7 @@ def auto_register_tags(func,
 
 
 # Registered graphs
-NAME_TO_JAX_GRAPH = dict()
+NAME_TO_JAX_GRAPH = {}
 DEFERRED_REGISTRATIONS = []
 
 

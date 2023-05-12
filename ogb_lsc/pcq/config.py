@@ -73,11 +73,12 @@ def get_config(debug: bool = False) -> config_dict.ConfigDict:
 
   if debug:
     # Make network smaller.
-    model_config.update(dict(
+    model_config |= dict(
         mlp_hidden_size=32,
         mlp_layers=1,
         latent_size=32,
-        num_message_passing_steps=1))
+        num_message_passing_steps=1,
+    )
 
   config.experiment_kwargs = config_dict.ConfigDict(
       dict(

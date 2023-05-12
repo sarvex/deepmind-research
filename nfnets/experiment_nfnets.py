@@ -101,10 +101,12 @@ class Experiment(experiment.Experiment):
       del mod, val
       return (name in ['scale', 'offset', 'b']
               or 'gain' in name or 'bias' in name)
+
     gains_biases, weights = hk.data_structures.partition(pred_gb, self._params)
     def pred_fc(mod, name, val):
       del name, val
       return 'linear' in mod and 'squeeze_excite' not in mod
+
     fc_weights, weights = hk.data_structures.partition(pred_fc, weights)
     # Lr schedule with batch-based LR scaling
     if self.config.lr_scale_by_bs:
@@ -114,7 +116,7 @@ class Experiment(experiment.Experiment):
     lr_sched_fn = getattr(optim, self.config.lr_schedule.name)
     lr_schedule = lr_sched_fn(max_val=max_lr, **self.config.lr_schedule.kwargs)
     # Optimizer; no need to broadcast!
-    opt_kwargs = {key: val for key, val in self.config.optimizer.kwargs.items()}
+    opt_kwargs = dict(self.config.optimizer.kwargs.items())
     opt_kwargs['lr'] = lr_schedule
     opt_module = getattr(optim, self.config.optimizer.name)
     self.opt = opt_module([{'params': gains_biases, 'weight_decay': None,},

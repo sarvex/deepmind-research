@@ -83,9 +83,9 @@ def main(argv):
       optimizer_kwargs=dict(learning_rate=0.0,),
       init_w=[float(x) for x in FLAGS.test_w])
 
-  returns = []
-  for _ in range(FLAGS.num_episodes):
-    returns.append(experiment.run_episode(env, agent))
+  returns = [
+      experiment.run_episode(env, agent) for _ in range(FLAGS.num_episodes)
+  ]
   tf.logging.info("#" * 80)
   tf.logging.info(
       f"Avg. return over {FLAGS.num_episodes} episodes is {np.mean(returns)}")

@@ -223,10 +223,7 @@ def convert_value_and_grad_to_value_func(
 
   def value_func(*args, **kwargs):
     out, _ = value_and_grad_func(*args, **kwargs)
-    if has_aux:
-      return out[0]
-    else:
-      return out
+    return out[0] if has_aux else out
 
   return value_func
 
@@ -316,10 +313,10 @@ class Stateful:
 
   def get_state(self) -> Mapping[str, Any]:
     """Returns the state of the object."""
-    state = dict()
-    for name in self.__stateful_fields_names:
-      state[name] = Stateful._get_state_from_instance(getattr(self, name))
-    return state
+    return {
+        name: Stateful._get_state_from_instance(getattr(self, name))
+        for name in self.__stateful_fields_names
+    }
 
   def set_state(self, value):
     """Sets the state of the object with the provided value and returns the object."""
@@ -354,8 +351,7 @@ class Stateful:
       return collections.OrderedDict(
           (k, Stateful._get_state_from_instance(v)) for k, v in obj.items())
     if isinstance(obj, dict):
-      return dict(
-          (k, Stateful._get_state_from_instance(v)) for k, v in obj.items())
+      return {k: Stateful._get_state_from_instance(v) for k, v in obj.items()}
     return obj
 
   @staticmethod
@@ -379,13 +375,12 @@ class Stateful:
           for obj_i, value_i in zip(obj, value))
     if isinstance(value, collections.OrderedDict):
       if obj is None:
-        obj = dict((k, None) for k in value)
+        obj = {k: None for k in value}
       return collections.OrderedDict(
           (k, Stateful._set_state_to_instance(obj[k], value[k])) for k in obj)
     if isinstance(value, dict):
-      obj = dict((k, None) for k in value)
-      return dict(
-          (k, Stateful._set_state_to_instance(obj[k], value[k])) for k in obj)
+      obj = {k: None for k in value}
+      return {k: Stateful._set_state_to_instance(obj[k], value[k]) for k in obj}
     return value
 
   @staticmethod
@@ -402,7 +397,7 @@ class Stateful:
       return collections.OrderedDict(
           (k, Stateful._clear_state_from_instance(obj[k])) for k in obj)
     if isinstance(obj, dict):
-      return dict((k, Stateful._clear_state_from_instance(obj[k])) for k in obj)
+      return {k: Stateful._clear_state_from_instance(obj[k]) for k in obj}
     return None
 
   @staticmethod

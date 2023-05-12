@@ -62,12 +62,9 @@ def _build_rodent_escape_env():
       arena=arena,
       physics_timestep=0.001,
       control_timestep=.02)
-  raw_env = composer.Environment(
-      time_limit=20,
-      task=locomotion_task,
-      strip_singleton_obs_buffer_dim=True)
-
-  return raw_env
+  return composer.Environment(time_limit=20,
+                              task=locomotion_task,
+                              strip_singleton_obs_buffer_dim=True)
 
 
 def _build_rodent_maze_env():
@@ -105,12 +102,9 @@ def _build_rodent_maze_env():
       contact_termination=False,
       control_timestep=.02,
       physics_timestep=0.001)
-  raw_env = composer.Environment(
-      time_limit=30,
-      task=rodent_task,
-      strip_singleton_obs_buffer_dim=True)
-
-  return raw_env
+  return composer.Environment(time_limit=30,
+                              task=rodent_task,
+                              strip_singleton_obs_buffer_dim=True)
 
 
 def _build_rodent_corridor_gaps():
@@ -138,12 +132,9 @@ def _build_rodent_corridor_gaps():
       terminate_at_height=-0.3,
       physics_timestep=0.001,
       control_timestep=.02)
-  raw_env = composer.Environment(
-      time_limit=30,
-      task=rodent_task,
-      strip_singleton_obs_buffer_dim=True)
-
-  return raw_env
+  return composer.Environment(time_limit=30,
+                              task=rodent_task,
+                              strip_singleton_obs_buffer_dim=True)
 
 
 def _build_rodent_two_touch_env():
@@ -169,12 +160,9 @@ def _build_rodent_two_touch_env():
       physics_timestep=0.001,
       control_timestep=.02)
 
-  raw_env = composer.Environment(
-      time_limit=30,
-      task=task_reach,
-      strip_singleton_obs_buffer_dim=True)
-
-  return raw_env
+  return composer.Environment(time_limit=30,
+                              task=task_reach,
+                              strip_singleton_obs_buffer_dim=True)
 
 
 def _build_humanoid_walls_env():
@@ -203,12 +191,9 @@ def _build_humanoid_walls_env():
       walker_spawn_rotation=1.57,  # pi / 2
       physics_timestep=0.005,
       control_timestep=0.03)
-  raw_env = composer.Environment(
-      time_limit=30,
-      task=humanoid_task,
-      strip_singleton_obs_buffer_dim=True)
-
-  return raw_env
+  return composer.Environment(time_limit=30,
+                              task=humanoid_task,
+                              strip_singleton_obs_buffer_dim=True)
 
 
 def _build_humanoid_corridor_env():
@@ -226,12 +211,9 @@ def _build_humanoid_corridor_env():
       walker_spawn_rotation=1.57,  # pi / 2
       physics_timestep=0.005,
       control_timestep=0.03)
-  raw_env = composer.Environment(
-      time_limit=30,
-      task=humanoid_task,
-      strip_singleton_obs_buffer_dim=True)
-
-  return raw_env
+  return composer.Environment(time_limit=30,
+                              task=humanoid_task,
+                              strip_singleton_obs_buffer_dim=True)
 
 
 def _build_humanoid_corridor_gaps():
@@ -254,12 +236,9 @@ def _build_humanoid_corridor_gaps():
       walker_spawn_rotation=1.57,  # pi / 2
       physics_timestep=0.005,
       control_timestep=0.03)
-  raw_env = composer.Environment(
-      time_limit=30,
-      task=humanoid_task,
-      strip_singleton_obs_buffer_dim=True)
-
-  return raw_env
+  return composer.Environment(time_limit=30,
+                              task=humanoid_task,
+                              strip_singleton_obs_buffer_dim=True)
 
 
 class MujocoActionNormalizer(wrappers.EnvironmentWrapper):
@@ -281,7 +260,7 @@ class MujocoActionNormalizer(wrappers.EnvironmentWrapper):
     elif self._rescale == 'clip':
       scaled_actions = tree.map_structure(lambda a: np.clip(a, -1., 1.), action)
     else:
-      raise ValueError('Unrecognized scaling option: %s' % self._rescale)
+      raise ValueError(f'Unrecognized scaling option: {self._rescale}')
     return self._environment.step(scaled_actions)
 
 
@@ -483,9 +462,9 @@ class ControlSuite:
           'episodic_reward': (),
           'step_type': ()}
     else:
-      raise ValueError('Task \'{}\' not found.'.format(task_name))
+      raise ValueError(f"Task \'{task_name}\' not found.")
 
-    self._data_path = 'dm_control_suite/{}/train'.format(task_name)
+    self._data_path = f'dm_control_suite/{task_name}/train'
 
   @property
   def shapes(self):
@@ -522,7 +501,7 @@ class CmuThirdParty:
     # 'humanoid_corridor|humanoid_gaps|humanoid_walls'
     self._task_name = task_name
     self._pixel_keys = self.get_pixel_keys()
-    self._uint8_features = set(['observation/walker/egocentric_camera'])
+    self._uint8_features = {'observation/walker/egocentric_camera'}
     self.additional_paths = {}
     self._proprio_keys = [
         'walker/joints_vel',
@@ -563,7 +542,7 @@ class CmuThirdParty:
     elif task_name == 'humanoid_walls':
       self._data_path = 'dm_locomotion/humanoid_walls/seq40/train'
     else:
-      raise ValueError('Task \'{}\' not found.'.format(task_name))
+      raise ValueError(f"Task \'{task_name}\' not found.")
 
   @staticmethod
   def get_pixel_keys():
@@ -611,7 +590,7 @@ class Rodent:
     # 'rodent_escape|rodent_two_touch|rodent_gaps|rodent_mazes'
     self._task_name = task_name
     self._pixel_keys = self.get_pixel_keys()
-    self._uint8_features = set(['observation/walker/egocentric_camera'])
+    self._uint8_features = {'observation/walker/egocentric_camera'}
 
     self._proprio_keys = [
         'walker/joints_pos', 'walker/joints_vel', 'walker/tendons_pos',
@@ -647,7 +626,7 @@ class Rodent:
     elif task_name == 'rodent_mazes':
       self._data_path = 'dm_locomotion/rodent_mazes/seq40/train'
     else:
-      raise ValueError('Task \'{}\' not found.'.format(task_name))
+      raise ValueError(f"Task \'{task_name}\' not found.")
 
   @staticmethod
   def get_pixel_keys():
@@ -761,8 +740,7 @@ def _build_sarsa_example(sequences):
 
 def _padded_batch(example_ds, batch_size, shapes, drop_remainder=False):
   """Batch data while handling unequal lengths."""
-  padded_shapes = {}
-  padded_shapes['observation'] = {}
+  padded_shapes = {'observation': {}}
   for k, v in shapes.items():
     if 'observation' in k:
       padded_shapes['observation'][

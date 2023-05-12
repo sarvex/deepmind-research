@@ -83,5 +83,4 @@ def preprocess_antennae_images(antennae_images):
   rotated_antennae_images = tf.stack(rotated_antennae_images)
   normed_antennae_images = norm_antennae_images(rotated_antennae_images)
   normed_antennae_images = tf.clip_by_value(normed_antennae_images, 1, 4.5)
-  renormed_antennae_images = renorm_antennae(normed_antennae_images)
-  return renormed_antennae_images
+  return renorm_antennae(normed_antennae_images)

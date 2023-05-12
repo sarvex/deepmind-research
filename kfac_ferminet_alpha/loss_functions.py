@@ -566,7 +566,7 @@ def insert_slice_in_zeros(
     raise ValueError(f"Expected slice_to_insert.shape to have {dim} dim of 1,"
                      f" but was {slice_to_insert.shape[dim]}.")
 
-  before = [0] * int(len(slice_shape))
+  before = [0] * len(slice_shape)
   after = before[:]
   before[dim] = position
   after[dim] = dim_size - position - 1

@@ -156,9 +156,7 @@ class WSConv2D(hk.Conv2D):
 
 def signal_metrics(x, i):
   """Things to measure about a NCHW tensor activation."""
-  metrics = {}
-  # Average channel-wise mean-squared
-  metrics[f'avg_sq_mean_{i}'] = jnp.mean(jnp.mean(x, axis=[0, 1, 2])**2)
+  metrics = {f'avg_sq_mean_{i}': jnp.mean(jnp.mean(x, axis=[0, 1, 2])**2)}
   # Average channel variance
   metrics[f'avg_var_{i}'] = jnp.mean(jnp.var(x, axis=[0, 1, 2]))
   return metrics

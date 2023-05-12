@@ -48,37 +48,34 @@ def quantize_verts(verts, n_bits):
 
 def top_k_logits(logits, k):
   """Masks logits such that logits not in top-k are small."""
-  if k == 0:
-    return logits
-  else:
+  if k != 0:
     values, _ = tf.math.top_k(logits, k=k)
     k_largest = tf.reduce_min(values)
     logits = tf.where(tf.less_equal(logits, k_largest),
                       tf.ones_like(logits)*-1e9, logits)
-    return logits
+  return logits
 
 
 def top_p_logits(logits, p):
   """Masks logits using nucleus (top-p) sampling."""
   if p == 1:
     return logits
-  else:
-    logit_shape = tf.shape(logits)
-    seq, dim = logit_shape[1], logit_shape[2]
-    logits = tf.reshape(logits, [-1, dim])
-    sort_indices = tf.argsort(logits, axis=-1, direction='DESCENDING')
-    probs = tf.gather(tf.nn.softmax(logits), sort_indices, batch_dims=1)
-    cumprobs = tf.cumsum(probs, axis=-1, exclusive=True)
-    # The top 1 candidate always will not be masked.
-    # This way ensures at least 1 indices will be selected.
-    sort_mask = tf.cast(tf.greater(cumprobs, p), logits.dtype)
-    batch_indices = tf.tile(
-        tf.expand_dims(tf.range(tf.shape(logits)[0]), axis=-1), [1, dim])
-    top_p_mask = tf.scatter_nd(
-        tf.stack([batch_indices, sort_indices], axis=-1), sort_mask,
-        tf.shape(logits))
-    logits -= top_p_mask * 1e9
-    return tf.reshape(logits, [-1, seq, dim])
+  logit_shape = tf.shape(logits)
+  seq, dim = logit_shape[1], logit_shape[2]
+  logits = tf.reshape(logits, [-1, dim])
+  sort_indices = tf.argsort(logits, axis=-1, direction='DESCENDING')
+  probs = tf.gather(tf.nn.softmax(logits), sort_indices, batch_dims=1)
+  cumprobs = tf.cumsum(probs, axis=-1, exclusive=True)
+  # The top 1 candidate always will not be masked.
+  # This way ensures at least 1 indices will be selected.
+  sort_mask = tf.cast(tf.greater(cumprobs, p), logits.dtype)
+  batch_indices = tf.tile(
+      tf.expand_dims(tf.range(tf.shape(logits)[0]), axis=-1), [1, dim])
+  top_p_mask = tf.scatter_nd(
+      tf.stack([batch_indices, sort_indices], axis=-1), sort_mask,
+      tf.shape(logits))
+  logits -= top_p_mask * 1e9
+  return tf.reshape(logits, [-1, seq, dim])
 
 
 _function_cache = {}  # For multihead_self_attention_memory_efficient
@@ -153,8 +150,7 @@ def multihead_self_attention_memory_efficient(x,
       cache['v'] = tf.stack(cache_v, axis=1)
     return y
 
-  key = (
-      'multihead_self_attention_memory_efficient %s %s' % (num_heads, epsilon))
+  key = f'multihead_self_attention_memory_efficient {num_heads} {epsilon}'
   if not forget:
     forward_fn = forward_internal
   elif key in _function_cache:
@@ -280,11 +276,7 @@ class TransformerEncoder(snt.AbstractModule):
     Returns:
       output: Tensor of shape [batch_size, sequence_length, embed_size].
     """
-    if is_training:
-      dropout_rate = self.dropout_rate
-    else:
-      dropout_rate = 0.
-
+    dropout_rate = self.dropout_rate if is_training else 0.
     # Identify elements with all zeros as padding, and create bias to mask
     # out padding elements in self attention.
     encoder_padding = common_attention.embedding_to_padding(inputs)
@@ -293,7 +285,7 @@ class TransformerEncoder(snt.AbstractModule):
 
     x = inputs
     for layer_num in range(self.num_layers):
-      with tf.variable_scope('layer_{}'.format(layer_num)):
+      with tf.variable_scope(f'layer_{layer_num}'):
 
         # Multihead self-attention from Tensor2Tensor.
         res = x
@@ -303,9 +295,9 @@ class TransformerEncoder(snt.AbstractModule):
               bias=encoder_self_attention_bias,
               num_heads=self.num_heads,
               head_size=self.hidden_size // self.num_heads,
-              forget=True if is_training else False,
-              name='self_attention'
-              )
+              forget=bool(is_training),
+              name='self_attention',
+          )
         else:
           if self.layer_norm:
             res = common_layers.layer_norm(res, name='self_attention')
@@ -339,11 +331,7 @@ class TransformerEncoder(snt.AbstractModule):
           res = tf.nn.dropout(res, rate=dropout_rate)
         x += res
 
-    if self.layer_norm:
-      output = common_layers.layer_norm(x, name='output')
-    else:
-      output = x
-    return output
+    return common_layers.layer_norm(x, name='output') if self.layer_norm else x
 
 
 class TransformerDecoder(snt.AbstractModule):
@@ -417,11 +405,7 @@ class TransformerDecoder(snt.AbstractModule):
     Returns:
       output: Tensor of shape [batch_size, sequence_length, embed_size].
     """
-    if is_training:
-      dropout_rate = self.dropout_rate
-    else:
-      dropout_rate = 0.
-
+    dropout_rate = self.dropout_rate if is_training else 0.
     # create bias to mask future elements for causal self-attention.
     seq_length = tf.shape(inputs)[1]
     decoder_self_attention_bias = common_attention.attention_bias_lower_triangle(
@@ -437,7 +421,7 @@ class TransformerDecoder(snt.AbstractModule):
 
     x = inputs
     for layer_num in range(self.num_layers):
-      with tf.variable_scope('layer_{}'.format(layer_num)):
+      with tf.variable_scope(f'layer_{layer_num}'):
 
         # If using cached decoding, access cache for current layer, and create
         # bias that enables un-masked attention into the cache
@@ -458,9 +442,9 @@ class TransformerDecoder(snt.AbstractModule):
               cache=layer_cache,
               num_heads=self.num_heads,
               head_size=self.hidden_size // self.num_heads,
-              forget=True if is_training else False,
-              name='self_attention'
-              )
+              forget=bool(is_training),
+              name='self_attention',
+          )
         else:
           if self.layer_norm:
             res = common_layers.layer_norm(res, name='self_attention')
@@ -517,11 +501,7 @@ class TransformerDecoder(snt.AbstractModule):
           res = tf.nn.dropout(res, rate=dropout_rate)
         x += res
 
-    if self.layer_norm:
-      output = common_layers.layer_norm(x, name='output')
-    else:
-      output = x
-    return output
+    return common_layers.layer_norm(x, name='output') if self.layer_norm else x
 
   def create_init_cache(self, batch_size):
     """Creates empty cache dictionary for use in fast decoding."""
@@ -601,10 +581,7 @@ def conv_residual_block(inputs,
     res = tf.nn.relu(res)
     if dropout_rate:
       res = tf.nn.dropout(res, rate=dropout_rate)
-    if downsample:
-      out_strides = 2
-    else:
-      out_strides = 1
+    out_strides = 2 if downsample else 1
     res = conv(
         res,
         filters=output_channels,
@@ -656,16 +633,12 @@ class ResNet(snt.AbstractModule):
     Returns:
       output: Tensor of shape [batch_size, height, width, depth, output_size].
     """
-    if is_training:
-      dropout_rate = self.dropout_rate
-    else:
-      dropout_rate = 0.
-
+    dropout_rate = self.dropout_rate if is_training else 0.
     # Initial projection with large kernel as in original resnet architecture
-    if self.num_dims == 3:
-      conv = tf.layers.conv3d
-    elif self.num_dims == 2:
+    if self.num_dims == 2:
       conv = tf.layers.conv2d
+    elif self.num_dims == 3:
+      conv = tf.layers.conv3d
     x = conv(
         inputs,
         filters=self.hidden_sizes[0],
@@ -681,23 +654,25 @@ class ResNet(snt.AbstractModule):
     for d, (hidden_size,
             blocks) in enumerate(zip(self.hidden_sizes, self.num_blocks)):
 
-      with tf.variable_scope('resolution_{}'.format(d)):
+      with tf.variable_scope(f'resolution_{d}'):
 
         # Downsample at the start of each collection of blocks
         x = conv_residual_block(
             x,
-            downsample=False if d == 0 else True,
+            downsample=d != 0,
             dropout_rate=dropout_rate,
             output_channels=hidden_size,
             re_zero=self.re_zero,
-            name='block_1_downsample')
+            name='block_1_downsample',
+        )
         for i in range(blocks - 1):
           x = conv_residual_block(
               x,
               dropout_rate=dropout_rate,
               output_channels=hidden_size,
               re_zero=self.re_zero,
-              name='block_{}'.format(i + 2))
+              name=f'block_{i + 2}',
+          )
     return x
 
 
@@ -856,8 +831,7 @@ class VertexModel(snt.AbstractModule):
     logits /= temperature
     logits = top_k_logits(logits, top_k)
     logits = top_p_logits(logits, top_p)
-    cat_dist = tfd.Categorical(logits=logits)
-    return cat_dist
+    return tfd.Categorical(logits=logits)
 
   def _build(self, batch, is_training=False):
     """Pass batch through vertex model and get log probabilities under model.
@@ -873,12 +847,12 @@ class VertexModel(snt.AbstractModule):
     """
     global_context, seq_context = self._prepare_context(
         batch, is_training=is_training)
-    pred_dist = self._create_dist(
+    return self._create_dist(
         batch['vertices_flat'][:, :-1],  # Last element not used for preds
         global_context_embedding=global_context,
         sequential_context_embeddings=seq_context,
-        is_training=is_training)
-    return pred_dist
+        is_training=is_training,
+    )
 
   def sample(self,
              num_samples,
@@ -1266,7 +1240,8 @@ class FaceModel(snt.AbstractModule):
             embed_dim=self.embedding_dim,
             initializers={'embeddings': tf.glorot_uniform_initializer},
             densify_gradients=True,
-            name='coord_{}'.format(c))(verts_quantized[..., c])
+            name=f'coord_{c}',
+        )(verts_quantized[..., c])
     else:
       vertex_embeddings = tf.layers.dense(
           vertices, self.embedding_dim, use_bias=True, name='vertex_embeddings')
@@ -1387,14 +1362,14 @@ class FaceModel(snt.AbstractModule):
     """
     vertex_embeddings, global_context, seq_context = self._prepare_context(
         batch, is_training=is_training)
-    pred_dist = self._create_dist(
+    return self._create_dist(
         vertex_embeddings,
         batch['vertices_mask'],
         batch['faces'][:, :-1],
         global_context_embedding=global_context,
         sequential_context_embeddings=seq_context,
-        is_training=is_training)
-    return pred_dist
+        is_training=is_training,
+    )
 
   def sample(self,
              context,

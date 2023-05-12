@@ -89,12 +89,10 @@ def get_train_step(model, dataset, optimizer):
     overview = model.get_overview_images(dataset("summary"))
     scalars["debug/global_grad_norm"] = global_norm
 
-    summaries = {
-        k: tf.summary.scalar(k, v) for k, v in scalars.items()
-    }
-    summaries.update(
-        {k: tf.summary.image(k, v) for k, v in overview.items()})
-
+    summaries = {k: tf.summary.scalar(k, v)
+                 for k, v in scalars.items()
+                 } | {k: tf.summary.image(k, v)
+                      for k, v in overview.items()}
     return tf.identity(global_step), scalars, train_op
 
 
@@ -102,7 +100,7 @@ def get_train_step(model, dataset, optimizer):
 def get_checkpoint_dir(continue_run, checkpoint_dir, _run, _log):
   if continue_run:
     assert os.path.exists(checkpoint_dir)
-    _log.info("Continuing run from checkpoint at {}".format(checkpoint_dir))
+    _log.info(f"Continuing run from checkpoint at {checkpoint_dir}")
     return checkpoint_dir
 
   run_id = _run._id
@@ -112,8 +110,7 @@ def get_checkpoint_dir(continue_run, checkpoint_dir, _run, _log):
           "No run_id given or provided by an Observer. (Re-)using run_id=1.")
     run_id = 1
   checkpoint_dir = checkpoint_dir + "_{run_id}".format(run_id=run_id)
-  _log.info(
-      "Starting a new run using checkpoint dir: '{}'".format(checkpoint_dir))
+  _log.info(f"Starting a new run using checkpoint dir: '{checkpoint_dir}'")
   return checkpoint_dir
 
 
@@ -141,11 +138,7 @@ def get_session(chkp_dir, loss, stop_after_steps, save_summaries_steps,
 def load_checkpoint(use_placeholder=False, session=None):
   dataset = build("data")
   model = build("model")
-  if use_placeholder:
-    inputs = dataset.get_placeholders()
-  else:
-    inputs = dataset()
-
+  inputs = dataset.get_placeholders() if use_placeholder else dataset()
   info = model.eval(inputs)
   if session is None:
     session = tf.Session()
@@ -154,7 +147,7 @@ def load_checkpoint(use_placeholder=False, session=None):
   checkpoint_file = tf.train.latest_checkpoint(checkpoint_dir)
   saver.restore(session, checkpoint_file)
 
-  print('Successfully restored Checkpoint "{}"'.format(checkpoint_file))
+  print(f'Successfully restored Checkpoint "{checkpoint_file}"')
   # print variables
   variables = tf.global_variables() + tf.local_variables()
   for row in snt.format_variables(variables, join_lines=False):

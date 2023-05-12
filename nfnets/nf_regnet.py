@@ -45,10 +45,7 @@ class NF_RegNet(hk.Module):
     self.width_pattern = block_params['width']
     self.depth_pattern = block_params['depth']
     self.activation = base.nonlinearities[activation]
-    if drop_rate is None:
-      self.drop_rate = block_params['drop_rate']
-    else:
-      self.drop_rate = drop_rate
+    self.drop_rate = block_params['drop_rate'] if drop_rate is None else drop_rate
     self.which_conv = base.WSConv2D
     # Stem
     ch = int(self.width_pattern[0] * self.width)
@@ -96,7 +93,7 @@ class NF_RegNet(hk.Module):
     outputs = {}
     out = self.initial_conv(x)
     if return_metrics:
-      outputs.update(base.signal_metrics(out, 0))
+      outputs |= base.signal_metrics(out, 0)
     # Blocks
     for i, block in enumerate(self.blocks):
       out, res_avg_var = block(out, is_training=is_training)

@@ -23,7 +23,7 @@ def get_config(checkpoint_to_evaluate: Text, batch_size: int):
   """Return config object for training."""
   train_images_per_epoch = dataset.Split.TRAIN_AND_VALID.num_examples
 
-  config = dict(
+  return dict(
       random_seed=0,
       enable_double_transpose=True,
       max_steps=80 * train_images_per_epoch // batch_size,
@@ -45,9 +45,7 @@ def get_config(checkpoint_to_evaluate: Text, batch_size: int):
       ),
       network_config=dict(  # Should match the evaluated checkpoint
           encoder_class='ResNet50',  # Should match a class in utils/networks.
-          encoder_config=dict(
-              resnet_v2=False,
-              width_multiplier=1),
+          encoder_config=dict(resnet_v2=False, width_multiplier=1),
           bn_decay_rate=0.9,
       ),
       evaluation_config=dict(
@@ -58,10 +56,8 @@ def get_config(checkpoint_to_evaluate: Text, batch_size: int):
           use_checkpointing=True,
           checkpoint_dir='/tmp/byol',
           save_checkpoint_interval=300,
-          filename='linear-eval.pkl'
+          filename='linear-eval.pkl',
       ),
   )
-
-  return config
 
 

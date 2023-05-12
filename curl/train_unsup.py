@@ -28,13 +28,12 @@ FLAGS = flags.FLAGS
 def main(unused_argv):
   if FLAGS.dataset == 'mnist':
     n_y = 25
-    n_y_active = 1
     n_z = 50
-  else:  # omniglot
+  else:# omniglot
     n_y = 100
-    n_y_active = 1
     n_z = 100
 
+  n_y_active = 1
   training.run_training(
       dataset=FLAGS.dataset,
       n_y=n_y,

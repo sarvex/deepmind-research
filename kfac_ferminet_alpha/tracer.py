@@ -54,12 +54,12 @@ def construct_compute_losses_inputs(
   primals_ = list(primals)
 
   def forward_compute_losses(
-      params_primals: Any,
-  ) -> Sequence[Sequence[jnp.ndarray]]:
+        params_primals: Any,
+    ) -> Sequence[Sequence[jnp.ndarray]]:
     primals_[params_index] = params_primals
     flat_args = jax.tree_flatten(primals_)[0]
     # Mapping from variable -> value
-    env = dict()
+    env = {}
     read = functools.partial(tgm.read_env, env)
     write = functools.partial(tgm.write_env, env)
 
@@ -79,7 +79,8 @@ def construct_compute_losses_inputs(
       if num_losses is not None and losses_so_far == num_losses:
         break
     return tuple(tuple(read(v) for v in tag.invars) for tag in loss_tags)
-    # return tuple(jax_util.safe_map(read, tag.invars) for tag in loss_tags)
+      # return tuple(jax_util.safe_map(read, tag.invars) for tag in loss_tags)
+
   return forward_compute_losses
 
 
@@ -225,7 +226,7 @@ def trace_estimator_vjp(tagged_func: _Function) -> _Function:
     def forward():
       own_func_args = func_args
       # Mapping from variable -> value
-      env = dict()
+      env = {}
       read = functools.partial(tgm.read_env, env)
       write = functools.partial(tgm.write_env, env)
 
@@ -250,7 +251,7 @@ def trace_estimator_vjp(tagged_func: _Function) -> _Function:
     def forward_aux(aux):
       own_func_args = func_args
       # Mapping from variable -> value
-      env = dict()
+      env = {}
       read = functools.partial(tgm.read_env, env)
       def write(var, val):
         if not isinstance(var, (jax.core.Literal, jax.core.UnitVar)):
@@ -307,7 +308,7 @@ def trace_estimator_vjp(tagged_func: _Function) -> _Function:
       layers_info = []
       for jaxpr_eqn in layer_tags:
         layer_tag = _unbox_layer_tag(jaxpr_eqn)
-        info = dict()
+        info = {}
         primals = jax_util.safe_map(read_primals, tuple(jaxpr_eqn.invars))
         (
             info["outputs"],
@@ -324,4 +325,5 @@ def trace_estimator_vjp(tagged_func: _Function) -> _Function:
       return tuple(layers_info)
 
     return losses, vjp_func
+
   return full_vjp_func

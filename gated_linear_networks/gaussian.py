@@ -102,8 +102,7 @@ class GatedLinearNetwork(base.GatedLinearNetwork):
 
     sigma_sq_out = 1. / jnp.sum(used_weights / sigma_sq_in)
     mu_out = sigma_sq_out * jnp.sum((used_weights * mu_in) / sigma_sq_in)
-    prediction = jnp.hstack((mu_out, sigma_sq_out))
-    return prediction
+    return jnp.hstack((mu_out, sigma_sq_out))
 
   @staticmethod
   def _project_weights(inputs: Array,     # [input_size]

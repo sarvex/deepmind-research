@@ -38,17 +38,16 @@ class GraphNetBlock(snt.AbstractModule):
     sender_features = tf.gather(node_features, edge_set.senders)
     receiver_features = tf.gather(node_features, edge_set.receivers)
     features = [sender_features, receiver_features, edge_set.features]
-    with tf.variable_scope(edge_set.name+'_edge_fn'):
+    with tf.variable_scope(f'{edge_set.name}_edge_fn'):
       return self._model_fn()(tf.concat(features, axis=-1))
 
   def _update_node_features(self, node_features, edge_sets):
     """Aggregrates edge features, and applies node function."""
     num_nodes = tf.shape(node_features)[0]
     features = [node_features]
-    for edge_set in edge_sets:
-      features.append(tf.math.unsorted_segment_sum(edge_set.features,
-                                                   edge_set.receivers,
-                                                   num_nodes))
+    features.extend(
+        tf.math.unsorted_segment_sum(edge_set.features, edge_set.receivers,
+                                     num_nodes) for edge_set in edge_sets)
     with tf.variable_scope('node_fn'):
       return self._model_fn()(tf.concat(features, axis=-1))
 

@@ -163,8 +163,7 @@ class TicTacToeOptimalOpponent(logic_base.Opponent):
     pass
 
   def policy(self, game_logic, random_state):
-    action = tic_tac_toe_minimax(game_logic.open_spiel_state, random_state)
-    return action
+    return tic_tac_toe_minimax(game_logic.open_spiel_state, random_state)
 
 
 def numpy_array_to_open_spiel_state(board_state):

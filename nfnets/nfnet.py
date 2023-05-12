@@ -59,10 +59,7 @@ class NFNet(hk.Module):
     self.group_pattern = block_params.get('group_width', [128] * 4)
     self.big_pattern = block_params.get('big_width', [True] * 4)
     self.activation = base.nonlinearities[activation]
-    if drop_rate is None:
-      self.drop_rate = block_params['drop_rate']
-    else:
-      self.drop_rate = drop_rate
+    self.drop_rate = block_params['drop_rate'] if drop_rate is None else drop_rate
     self.which_conv = base.WSConv2D
     # Stem
     ch = self.width_pattern[0] // 2
@@ -134,7 +131,7 @@ class NFNet(hk.Module):
     outputs = {}
     out = self.stem(x)
     if return_metrics:
-      outputs.update(base.signal_metrics(out, 0))
+      outputs |= base.signal_metrics(out, 0)
     # Blocks
     for i, block in enumerate(self.blocks):
       out, res_avg_var = block(out, is_training=is_training)
@@ -157,7 +154,7 @@ class NFNet(hk.Module):
     for module in self.stem.layers:
       if isinstance(module, hk.Conv2D):
         flops += [base.count_conv_flops(ch, module, h, w)]
-        if any([item > 1 for item in module.stride]):
+        if any(item > 1 for item in module.stride):
           h, w = h / module.stride[0], w / module.stride[1]
         ch = module.output_channels
     # Body FLOPs

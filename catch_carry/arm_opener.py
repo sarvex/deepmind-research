@@ -158,9 +158,8 @@ class _ArmPropContactRemover(object):
       contact = self._forward_and_find_next_contact(physics)
       if contact and contact.dist < 0:
         raise RuntimeError(
-            'Failed to remove contact with prop after {} iterations. '
-            'Final contact distance is {}.'.format(
-                _MAX_IK_ATTEMPTS, contact.dist))
+            f'Failed to remove contact with prop after {_MAX_IK_ATTEMPTS} iterations. Final contact distance is {contact.dist}.'
+        )
 
 
 def open_arms_for_prop(physics, left_arm_root, right_arm_root, prop, gap):

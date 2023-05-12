@@ -50,9 +50,7 @@ def get_act_func(name_or_func):
     return ACT_FUNCS[name_or_func.lower()]
   else:
     raise KeyError(
-        'Unknown activation function "{}" of type {}"'.format(
-            name_or_func, type(name_or_func)
-        )
+        f'Unknown activation function "{name_or_func}" of type {type(name_or_func)}"'
     )
 
 
@@ -70,16 +68,14 @@ def get_distribution(name_or_dist):
   elif isinstance(name_or_dist, str):
     return DISTS[name_or_dist.lower()]
   raise KeyError(
-      'Unknown distribution "{}" of type {}"'.format(name_or_dist,
-                                                     type(name_or_dist)))
+      f'Unknown distribution "{name_or_dist}" of type {type(name_or_dist)}"')
 
 
 def get_mask_plot_colors(nr_colors):
   """Get nr_colors uniformly spaced hues to plot mask values."""
   hsv_colors = np.ones((nr_colors, 3), dtype=np.float32)
   hsv_colors[:, 0] = np.linspace(0, 1, nr_colors, endpoint=False)
-  color_conv = hsv_to_rgb(hsv_colors)
-  return color_conv
+  return hsv_to_rgb(hsv_colors)
 
 
 def color_transform(masks):
@@ -306,28 +302,20 @@ class OnlineMeanVarEstimator(snt.AbstractModule):
 
 def print_shapes(name, value, indent=""):
   if isinstance(value, dict):
-    print("{}{}:".format(indent, name))
+    print(f"{indent}{name}:")
     for k, v in sorted(value.items(),
                        key=lambda x: (isinstance(x[1], dict), x[0])):
-      print_shapes(k, v, indent + "  ")
+      print_shapes(k, v, f"{indent}  ")
   elif isinstance(value, list):
-    print(
-        "{}{}[{}]: {} @ {}".format(
-            indent, name, len(value), value[0].shape, value[0].dtype
-        )
-    )
+    print(f"{indent}{name}[{len(value)}]: {value[0].shape} @ {value[0].dtype}")
   elif isinstance(value, np.ndarray):
-    print("{}{}: {} @ {}".format(indent, name, value.shape, value.dtype))
+    print(f"{indent}{name}: {value.shape} @ {value.dtype}")
   elif isinstance(value, tf.Tensor):
-    print(
-        "{}{}: {} @ {}".format(
-            indent, name, value.get_shape().as_list(), value.dtype
-        )
-    )
+    print(f"{indent}{name}: {value.get_shape().as_list()} @ {value.dtype}")
   elif np.isscalar(value):
-    print("{}{}: {}".format(indent, name, value))
+    print(f"{indent}{name}: {value}")
   else:
-    print("{}{}.type: {}".format(indent, name, type(value)))
+    print(f"{indent}{name}.type: {type(value)}")
 
 
 def _pad_images(images, image_border_value=0.5, border_width=2):
@@ -494,9 +482,8 @@ def build(plan, identifier):
 
 def _resolve_constructor(plan_subsection):
   assert "constructor" in plan_subsection, plan_subsection
-  if isinstance(plan_subsection["constructor"], str):
-    module, _, ctor = plan_subsection["constructor"].rpartition(".")
-    mod = importlib.import_module(module)
-    return getattr(mod, ctor)
-  else:
+  if not isinstance(plan_subsection["constructor"], str):
     return plan_subsection["constructor"]
+  module, _, ctor = plan_subsection["constructor"].rpartition(".")
+  mod = importlib.import_module(module)
+  return getattr(mod, ctor)

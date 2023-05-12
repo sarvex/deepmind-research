@@ -83,69 +83,70 @@ class Go(jaco_arm_board_game.JacoArmBoardGame):
     return 0.05
 
   def after_substep(self, physics, random_state):
-    if not self._made_move_this_step:
-      # which board square received the most contact pressure
-      indices = self._board.get_contact_indices(physics)
-      if not indices:
-        return
-      row, col = indices
-      # Makes sure that contact with that board square involved a finger
-      finger_touch = self._board.validate_finger_touch(physics,
-                                                       row, col, self._hand)
-      if not finger_touch:
-        return
+    if self._made_move_this_step:
+      return
+    # which board square received the most contact pressure
+    indices = self._board.get_contact_indices(physics)
+    if not indices:
+      return
+    row, col = indices
+    # Makes sure that contact with that board square involved a finger
+    finger_touch = self._board.validate_finger_touch(physics,
+                                                     row, col, self._hand)
+    if not finger_touch:
+      return
 
-      pass_action = True if (row == -1 and col == -1) else False
-      if pass_action and self._last_valid_move_is_pass:
-        # Don't allow two passes in a row (otherwise hard to only pass once)
-        valid_move = False
+    pass_action = row == -1 and col == -1
+    if pass_action and self._last_valid_move_is_pass:
+      # Don't allow two passes in a row (otherwise hard to only pass once)
+      valid_move = False
+    else:
+      valid_move = self._game_logic.apply(
+          player=jaco_arm_board_game.SELF,
+          action=go_logic.GoMarkerAction(row=int(row), col=int(col),
+                                         pass_action=pass_action))
+
+    if valid_move:
+      self._made_move_this_step = True
+      if not pass_action:
+        self._last_valid_move_is_pass = False
+        marker_pos = self._board.get_contact_pos(
+            physics=physics, row=row, col=col)
+        self._markers.mark(physics=physics,
+                           player_id=jaco_arm_board_game.SELF,
+                           pos=marker_pos,
+                           bpos=(row, col))
       else:
-        valid_move = self._game_logic.apply(
-            player=jaco_arm_board_game.SELF,
-            action=go_logic.GoMarkerAction(row=int(row), col=int(col),
-                                           pass_action=pass_action))
+        self._last_valid_move_is_pass = True
+      if not self._game_logic.is_game_over:
+        opponent_move = self._game_opponent.policy(
+            game_logic=self._game_logic, player=jaco_arm_board_game.OPPONENT,
+            random_state=random_state)
+        assert opponent_move
+        assert self._game_logic.apply(player=jaco_arm_board_game.OPPONENT,
+                                      action=opponent_move)
+        marker_pos = self._board.sample_pos_inside_touch_sensor(
+            physics=physics,
+            random_state=random_state,
+            row=opponent_move.row,
+            col=opponent_move.col)
+        self._markers.mark(physics=physics,
+                           player_id=jaco_arm_board_game.OPPONENT,
+                           pos=marker_pos,
+                           bpos=(opponent_move.row,
+                                 opponent_move.col))
+      if self._reset_arm_after_move:
+        self._tcp_initializer(physics, random_state)
 
-      if valid_move:
-        self._made_move_this_step = True
-        if not pass_action:
-          self._last_valid_move_is_pass = False
-          marker_pos = self._board.get_contact_pos(
-              physics=physics, row=row, col=col)
-          self._markers.mark(physics=physics,
-                             player_id=jaco_arm_board_game.SELF,
-                             pos=marker_pos,
-                             bpos=(row, col))
-        else:
-          self._last_valid_move_is_pass = True
-        if not self._game_logic.is_game_over:
-          opponent_move = self._game_opponent.policy(
-              game_logic=self._game_logic, player=jaco_arm_board_game.OPPONENT,
-              random_state=random_state)
-          assert opponent_move
-          assert self._game_logic.apply(player=jaco_arm_board_game.OPPONENT,
-                                        action=opponent_move)
-          marker_pos = self._board.sample_pos_inside_touch_sensor(
-              physics=physics,
-              random_state=random_state,
-              row=opponent_move.row,
-              col=opponent_move.col)
-          self._markers.mark(physics=physics,
-                             player_id=jaco_arm_board_game.OPPONENT,
-                             pos=marker_pos,
-                             bpos=(opponent_move.row,
-                                   opponent_move.col))
-        if self._reset_arm_after_move:
-          self._tcp_initializer(physics, random_state)
-
-        # Redraw all markers that are on the board (after captures)
-        self._markers.make_all_invisible(physics)
-        board = self._game_logic.get_board_state()
-        black_stones = np.transpose(np.nonzero(board[:, :, 1]))
-        white_stones = np.transpose(np.nonzero(board[:, :, 2]))
-        if black_stones.size > 0:
-          self._markers.make_visible_by_bpos(physics, 0, black_stones)
-        if white_stones.size > 0:
-          self._markers.make_visible_by_bpos(physics, 1, white_stones)
+      # Redraw all markers that are on the board (after captures)
+      self._markers.make_all_invisible(physics)
+      board = self._game_logic.get_board_state()
+      black_stones = np.transpose(np.nonzero(board[:, :, 1]))
+      white_stones = np.transpose(np.nonzero(board[:, :, 2]))
+      if black_stones.size > 0:
+        self._markers.make_visible_by_bpos(physics, 0, black_stones)
+      if white_stones.size > 0:
+        self._markers.make_visible_by_bpos(physics, 1, white_stones)
 
 
 @registry.add(tags.EASY, tags.FEATURES)

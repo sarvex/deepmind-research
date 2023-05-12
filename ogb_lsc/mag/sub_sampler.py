@@ -30,21 +30,20 @@ def get_or_sample_row(node_id: int,
   else:
     lo = csr_matrix.indptr[node_id]
     hi = csr_matrix.indptr[node_id + 1]
-  if lo == hi:  # Skip empty neighbourhoods
-    neighbours = None
+  if lo == hi:# Skip empty neighbourhoods
+    return None
   elif hi - lo <= nb_neighbours:
-    neighbours = csr_matrix.indices[lo:hi]
-  elif hi - lo < 5 * nb_neighbours:  # For small surroundings, sample directly
+    return csr_matrix.indices[lo:hi]
+  elif hi - lo < 5 * nb_neighbours:# For small surroundings, sample directly
     nb_neighbours = min(nb_neighbours, hi - lo)
     inds = lo + np.random.choice(hi - lo, size=(nb_neighbours,), replace=False)
-    neighbours = csr_matrix.indices[inds]
-  else:  # Otherwise, do not slice -- sample indices instead
+    return csr_matrix.indices[inds]
+  else:# Otherwise, do not slice -- sample indices instead
     # To extend GraphSAGE ("uniform w/ replacement"), modify this call
     inds = np.random.randint(lo, hi, size=(nb_neighbours,))
     if remove_duplicates:
       inds = np.unique(inds)
-    neighbours = csr_matrix.indices[inds]
-  return neighbours
+    return csr_matrix.indices[inds]
 
 
 def get_neighbours(node_id: int,
@@ -77,9 +76,9 @@ def get_senders(neighbour_type: int,
                 sender_index,
                 paper_features):
   """Get the sender features from given neighbours."""
-  if neighbour_type == 0 or neighbour_type == 3:
+  if neighbour_type in {0, 3}:
     sender_features = paper_features[sender_index]
-  elif neighbour_type == 1 or neighbour_type == 2:
+  elif neighbour_type in {1, 2}:
     sender_features = np.zeros((sender_index.shape[0],
                                 paper_features.shape[1]))  # Consider averages
   else:
@@ -108,17 +107,14 @@ def subsample_graph(paper_id: int,
                     remove_future_nodes=False,
                     deduplicate_nodes=False) -> jraph.GraphsTuple:
   """Subsample a graph around given paper ID."""
-  if paper_years is not None:
-    root_paper_year = paper_years[paper_id]
-  else:
-    root_paper_year = None
+  root_paper_year = paper_years[paper_id] if paper_years is not None else None
   # Add the center node as "node-zero"
   sub_nodes = [paper_id]
   num_nodes_in_subgraph = 1
   num_edges_in_subgraph = 0
   reached_node_budget = False
   reached_edge_budget = False
-  node_and_type_to_index_in_subgraph = dict()
+  node_and_type_to_index_in_subgraph = {}
   node_and_type_to_index_in_subgraph[(paper_id, 0)] = 0
   # Store all (integer) depths as an additional feature
   depths = [0]
@@ -161,14 +157,14 @@ def subsample_graph(paper_id: int,
         )
 
         if sampled_neighbors is not None:
-          if remove_future_nodes and root_paper_year is not None:
-            if neighbour_type in [0, 3]:
-              sampled_neighbors = [
-                  x for x in sampled_neighbors
-                  if paper_years[x] <= root_paper_year
-              ]
-              if not sampled_neighbors:
-                continue
+          if (remove_future_nodes and root_paper_year is not None
+              and neighbour_type in [0, 3]):
+            sampled_neighbors = [
+                x for x in sampled_neighbors
+                if paper_years[x] <= root_paper_year
+            ]
+            if not sampled_neighbors:
+              continue
 
           nb_neighbours = len(sampled_neighbors)
           edge_feature = make_edge_type_feature(node_type, neighbour_type)

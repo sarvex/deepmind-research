@@ -198,7 +198,7 @@ def stack_desired_galaxy_images(base_dir, seq, n_time_slices):
     img = get_image_from_fits(base_dir=base_dir, seq=seq, time=time, axis=2)
     all_imgs.append(img)
 
-  min_img_size = min([img.shape[0] for img in all_imgs])
+  min_img_size = min(img.shape[0] for img in all_imgs)
   return all_imgs, min_img_size
 
 

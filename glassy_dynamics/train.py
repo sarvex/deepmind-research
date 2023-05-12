@@ -143,8 +143,7 @@ def get_minimize_op(
   if grad_clip:
     grads, _ = tf.clip_by_global_norm([g for g, _ in grads_and_vars], grad_clip)
     grads_and_vars = [(g, pair[1]) for g, pair in zip(grads, grads_and_vars)]
-  minimize = optimizer.apply_gradients(grads_and_vars)
-  return minimize
+  return optimizer.apply_gradients(grads_and_vars)
 
 
 def _log_stats_and_return_mean_correlation(
@@ -343,7 +342,7 @@ def apply_model(checkpoint_path: Text,
   data = load_data(file_pattern, **dataset_kwargs)
 
   tf.reset_default_graph()
-  saver = tf.train.import_meta_graph(checkpoint_path + '.meta')
+  saver = tf.train.import_meta_graph(f'{checkpoint_path}.meta')
   graph = tf.get_default_graph()
 
   placeholders = GlassSimulationData(

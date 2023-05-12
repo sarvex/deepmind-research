@@ -45,16 +45,16 @@ class _WideResNetBlock(hk.Module):
     self._conv_modules = []
     for i in range(num_bottleneck_layers + 1):
       s = stride if i == 0 else 1
-      self._bn_modules.append(hk.BatchNorm(
-          name='batchnorm_{}'.format(i),
-          **norm_args))
-      self._conv_modules.append(hk.Conv2D(
-          output_channels=num_filters,
-          padding='SAME',
-          kernel_shape=(3, 3),
-          stride=s,
-          with_bias=False,
-          name='conv_{}'.format(i)))  # pytype: disable=not-callable
+      self._bn_modules.append(hk.BatchNorm(name=f'batchnorm_{i}', **norm_args))
+      self._conv_modules.append(
+          hk.Conv2D(
+              output_channels=num_filters,
+              padding='SAME',
+              kernel_shape=(3, 3),
+              stride=s,
+              with_bias=False,
+              name=f'conv_{i}',
+          ))
     if projection_shortcut:
       self._shortcut = hk.Conv2D(
           output_channels=num_filters,
@@ -123,13 +123,15 @@ class WideResNet(hk.Module):
       for i in range(blocks_per_layer):
         stride = 2 if (layer_num != 0 and i == 0) else 1
         projection_shortcut = (i == 0)
-        blocks_of_layer.append(_WideResNetBlock(
-            num_filters=filter_size,
-            stride=stride,
-            projection_shortcut=projection_shortcut,
-            activation=self._activation,
-            norm_args=norm_args,
-            name='resnet_lay_{}_block_{}'.format(layer_num, i)))
+        blocks_of_layer.append(
+            _WideResNetBlock(
+                num_filters=filter_size,
+                stride=stride,
+                projection_shortcut=projection_shortcut,
+                activation=self._activation,
+                norm_args=norm_args,
+                name=f'resnet_lay_{layer_num}_block_{i}',
+            ))
       self._blocks.append(blocks_of_layer)
 
   def __call__(self, inputs, **norm_kwargs):

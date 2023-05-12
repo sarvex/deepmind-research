@@ -56,14 +56,15 @@ def make_sep_res_layer(
         h_conv,
         in_channels=in_channels,
         out_channels=in_channels / divide_channels_by,
-        layer_name=layer_name + '_1x1h',
+        layer_name=f'{layer_name}_1x1h',
         filter_size=1,
         filter_size_2=1,
         non_linearity=True,
         batch_norm=batch_norm,
         is_training=is_training,
         data_format=data_format,
-        stddev=stddev)
+        stddev=stddev,
+    )
 
     # 3x3 with half size
     if channel_multiplier == 0:
@@ -101,14 +102,15 @@ def make_sep_res_layer(
         h_conv,
         in_channels=in_channels / divide_channels_by,
         out_channels=out_channels,
-        layer_name=layer_name + '_1x1',
+        layer_name=f'{layer_name}_1x1',
         filter_size=1,
         filter_size_2=1,
         non_linearity=False,
         batch_norm=False,
         is_training=is_training,
         data_format=data_format,
-        stddev=stddev)
+        stddev=stddev,
+    )
 
     if dropout_keep_prob < 1.0:
       logging.info('dropout keep prob %f', dropout_keep_prob)
@@ -163,7 +165,7 @@ def make_two_dim_resnet(
     if i_layer == num_layers - 1:
       out_channels = num_predictions
       non_linearity = final_non_linearity
-    if i_layer == 0 or i_layer == num_layers - 1:
+    if i_layer in [0, num_layers - 1]:
       layer_name = name_prefix + 'conv%d' % (i_layer + 1)
       initial_filter_size = filter_size
       if resize_features_with_1x1:
@@ -197,6 +199,4 @@ def make_two_dim_resnet(
           stddev=stddev,
           dropout_keep_prob=dropout_keep_prob)
 
-  y = previous_layer
-
-  return y
+  return previous_layer

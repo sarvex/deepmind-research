@@ -111,5 +111,4 @@ class MLPMetricNet(snt.AbstractModule):
   def _build(self, inputs):
     net = snt.nets.MLP(self._layer_size,
                        activation=tf.nn.leaky_relu)
-    output = net(snt.BatchFlatten()(inputs))
-    return output
+    return net(snt.BatchFlatten()(inputs))

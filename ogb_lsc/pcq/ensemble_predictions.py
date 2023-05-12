@@ -203,7 +203,7 @@ def merge_predictions(split: str) -> List[_Predictions]:
   seed = _SEED_START.value
 
   # Load conformer and non-conformer predictions.
-  for unused_seed_group in (0, 1):
+  for _ in (0, 1):
     for k in range(_NUM_KFOLD_SPLITS):
       conformer_predictions: _Predictions = load_predictions(
           f'{_CONFORMER_PATH.value}/k{k}_seed{seed}', split)

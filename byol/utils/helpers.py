@@ -36,9 +36,7 @@ def topk_accuracy(
 
   prds = jnp.argsort(logits, axis=1)[:, ::-1]
   prds = prds[:, :topk]
-  total = jnp.any(prds == jnp.tile(labels[:, jnp.newaxis], [1, topk]), axis=1)
-
-  return total
+  return jnp.any(prds == jnp.tile(labels[:, jnp.newaxis], [1, topk]), axis=1)
 
 
 def softmax_cross_entropy(

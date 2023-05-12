@@ -45,14 +45,14 @@ class Boxoban(object):
     self._data_split = data_split
     self._levels = []
 
-    data_file_path_local = os.path.join(os.path.dirname(__file__),
-                                        "boxoban_cache",
-                                        "{}_{}.npz".format(self._levels_set,
-                                                           self._data_split))
+    data_file_path_local = os.path.join(
+        os.path.dirname(__file__),
+        "boxoban_cache",
+        f"{self._levels_set}_{self._data_split}.npz",
+    )
 
-    data_file_path_global = os.path.join("/tmp/boxoban_cache",
-                                         "{}_{}.npz".format(self._levels_set,
-                                                            self._data_split))
+    data_file_path_global = os.path.join(
+        "/tmp/boxoban_cache", f"{self._levels_set}_{self._data_split}.npz")
 
     if os.path.exists(data_file_path_local):
       self.levels = np.load(data_file_path_local)["levels"]
@@ -77,12 +77,10 @@ class Boxoban(object):
     zip_file_path = os.path.join(cache_path, "master.zip")
     if not os.path.exists(zip_file_path):
       response = requests.get(BOXOBAN_URL, stream=True)
-      handle = open(zip_file_path, "wb")
-      for chunk in response.iter_content(chunk_size=512):
-        if chunk:
-          handle.write(chunk)
-      handle.close()
-
+      with open(zip_file_path, "wb") as handle:
+        for chunk in response.iter_content(chunk_size=512):
+          if chunk:
+            handle.write(chunk)
       with zipfile.ZipFile(zip_file_path, "r") as zipref:
         zipref.extractall(cache_path)
 
@@ -90,12 +88,12 @@ class Boxoban(object):
     path = os.path.join(cache_path, "boxoban-levels-master",
                         self._levels_set,
                         self._data_split)
-    files = glob.glob(path + "/*.txt")
+    files = glob.glob(f"{path}/*.txt")
     levels = "".join([open(f, "r").read() for f in files])
     levels = levels.split("\n;")
     levels = ["\n".join(item.split("\n")[1:]) for item in levels]
     levels = np.asarray(levels)
-    data_file_path = os.path.join(
-        cache_path, "{}_{}.npz".format(self._levels_set, self._data_split))
+    data_file_path = os.path.join(cache_path,
+                                  f"{self._levels_set}_{self._data_split}.npz")
     np.savez(data_file_path, levels=levels)
     return levels

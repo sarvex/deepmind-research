@@ -22,13 +22,13 @@ from alphafold_casp13 import contacts_network
 
 
 def _int_ph(shape, name):
-  return tf.placeholder(
-      dtype=tf.int32, shape=shape, name=('%s_placeholder' % name))
+  return tf.placeholder(dtype=tf.int32, shape=shape, name=f'{name}_placeholder')
 
 
 def _float_ph(shape, name):
-  return tf.placeholder(
-      dtype=tf.float32, shape=shape, name=('%s_placeholder' % name))
+  return tf.placeholder(dtype=tf.float32,
+                        shape=shape,
+                        name=f'{name}_placeholder')
 
 
 class Contacts(object):
@@ -209,25 +209,27 @@ class Contacts(object):
         'sequences': self._input_batch.sequences,
     }
     if hasattr(self._input_batch.targets, 'residue_index'):
-      request_dict.update(
-          {'residue_index': self._input_batch.targets.residue_index})
+      request_dict['residue_index'] = self._input_batch.targets.residue_index
     if hasattr(self._input_batch.targets, 'phi_angles'):
-      request_dict.update(
-          {'phi_angles': self._input_batch.targets.phi_angles,
-           'psi_angles': self._input_batch.targets.psi_angles,
-           'phi_mask': self._input_batch.targets.phi_mask,
-           'psi_mask': self._input_batch.targets.psi_mask})
+      request_dict |= {
+          'phi_angles': self._input_batch.targets.phi_angles,
+          'psi_angles': self._input_batch.targets.psi_angles,
+          'phi_mask': self._input_batch.targets.phi_mask,
+          'psi_mask': self._input_batch.targets.psi_mask,
+      }
     if hasattr(self._input_batch.targets, 'sec_structure'):
-      request_dict.update(
-          {'sec_structure': self._input_batch.targets.sec_structure,
-           'sec_structure_mask': self._input_batch.targets.sec_structure_mask,})
+      request_dict |= {
+          'sec_structure': self._input_batch.targets.sec_structure,
+          'sec_structure_mask': self._input_batch.targets.sec_structure_mask,
+      }
     if hasattr(self._input_batch.targets, 'solv_surf'):
-      request_dict.update(
-          {'solv_surf': self._input_batch.targets.solv_surf,
-           'solv_surf_mask': self._input_batch.targets.solv_surf_mask,})
+      request_dict |= {
+          'solv_surf': self._input_batch.targets.solv_surf,
+          'solv_surf_mask': self._input_batch.targets.solv_surf_mask,
+      }
     if hasattr(self._input_batch.targets, 'alpha_positions'):
-      request_dict.update(
-          {'alpha_positions': self._input_batch.targets.alpha_positions,
-           'alpha_mask': self._input_batch.targets.alpha_mask,})
-    batch = sess.run(request_dict)
-    return batch
+      request_dict |= {
+          'alpha_positions': self._input_batch.targets.alpha_positions,
+          'alpha_mask': self._input_batch.targets.alpha_mask,
+      }
+    return sess.run(request_dict)

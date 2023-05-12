@@ -50,7 +50,7 @@ def save_rr_file(filename, probs, domain, sequence,
 
 def save_torsions(torsions_dir, filebase, sequence, torsions_probs):
   """Save Torsions to a file as pickle of a dict."""
-  filename = os.path.join(torsions_dir, filebase + '.torsions')
+  filename = os.path.join(torsions_dir, f'{filebase}.torsions')
   t_dict = dict(probs=torsions_probs, sequence=sequence)
   with tf.io.gfile.GFile(filename, 'w') as fh:
     pickle.dump(t_dict, fh, protocol=2)
@@ -73,8 +73,7 @@ def save_distance_histogram_from_dict(filename, dh_dict):
   """Save a distance histogram prediction matrix as a pickle file."""
   fields = ['min_range', 'max_range', 'num_bins', 'domain', 'sequence', 'probs']
   missing_fields = [f for f in fields if f not in dh_dict]
-  assert not missing_fields, 'Fields {} missing from dictionary'.format(
-      missing_fields)
+  assert not missing_fields, f'Fields {missing_fields} missing from dictionary'
   assert len(dh_dict['sequence']) == dh_dict['probs'].shape[0]
   assert len(dh_dict['sequence']) == dh_dict['probs'].shape[1]
   assert dh_dict['num_bins'] == dh_dict['probs'].shape[2]

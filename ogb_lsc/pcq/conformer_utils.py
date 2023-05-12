@@ -114,7 +114,7 @@ def compute_conformer(smile: str, max_iter: int = -1) -> np.ndarray:
   """
   mol = rdkit.Chem.MolFromSmiles(smile)
   if not mol:
-    raise RuntimeError('Unable to convert smile to molecule: %s' % smile)
+    raise RuntimeError(f'Unable to convert smile to molecule: {smile}')
   conformer_failed = False
   try:
     mol = generate_conformers(
@@ -134,12 +134,11 @@ def compute_conformer(smile: str, max_iter: int = -1) -> np.ndarray:
     logging.error('Failed to generate conformers for %s.', smile)
     conformer_failed = True
 
-  atom_features_list = []
   conformer = None if conformer_failed else list(mol.GetConformers())[0]
-  for atom in mol.GetAtoms():
-    atom_features_list.append(atom_to_feature_vector(atom, conformer))
-  conformer_features = np.array(atom_features_list, dtype=np.float32)
-  return conformer_features
+  atom_features_list = [
+      atom_to_feature_vector(atom, conformer) for atom in mol.GetAtoms()
+  ]
+  return np.array(atom_features_list, dtype=np.float32)
 
 
 def get_random_rotation_matrix(include_mirror_symmetry: bool) -> tf.Tensor:

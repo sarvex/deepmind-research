@@ -79,15 +79,12 @@ class ControlNetwork(snt.Module):
       proprio_input.append(snt.Flatten()(inputs[key]))
       if np.prod(inputs[key].shape[1:]) > 32*32*3:
         raise ValueError(
-            'This input does not resemble a proprioceptive '
-            'state: {} with shape {}'.format(
-                key, inputs[key].shape))
+            f'This input does not resemble a proprioceptive state: {key} with shape {inputs[key].shape}'
+        )
 
     # Append optional action input (i.e. for critic networks).
     if action is not None:
       proprio_input.append(action)
 
     proprio_input = tf2_utils.batch_concat(proprio_input)
-    proprio_state = self._proprio_encoder(proprio_input)
-
-    return proprio_state
+    return self._proprio_encoder(proprio_input)

@@ -58,7 +58,7 @@ class SharedEncoder(snt.AbstractModule):
           activation=tf.nn.relu,
           activate_final=True)
     else:
-      raise ValueError('Unknown encoder_type {}'.format(encoder_type))
+      raise ValueError(f'Unknown encoder_type {encoder_type}')
 
   def _build(self, x, is_training):
     if self._encoder_type == 'multi':
@@ -126,7 +126,7 @@ def latent_encoder_fn(hiddens, y, n_y, n_z, is_training=True):
 
     all_logits = []
     for k in range(n_y):
-      lin = snt.Linear(n_logits, name='mlp_latent_encoder_' + str(k))
+      lin = snt.Linear(n_logits, name=f'mlp_latent_encoder_{str(k)}')
       all_logits.append(lin(hiddens))
 
   # Sum over cluster components.
@@ -173,20 +173,19 @@ def data_decoder_fn(z,
     The Bernoulli distribution `p(x | z)`.
   """
 
-  if output_type == 'bernoulli':
-    output_dist = lambda x: tfp.distributions.Bernoulli(logits=x)
-    n_out_factor = 1
-    out_shape = list(output_shape)
-  else:
+  if output_type != 'bernoulli':
     raise NotImplementedError
+  output_dist = lambda x: tfp.distributions.Bernoulli(logits=x)
+  n_out_factor = 1
+  out_shape = list(output_shape)
   if len(z.shape) != 2:
-    raise NotImplementedError('The data decoder function expects `z` to be '
-                              '2D, but its shape was %s instead.' %
-                              str(z.shape))
+    raise NotImplementedError(
+        f'The data decoder function expects `z` to be 2D, but its shape was {str(z.shape)} instead.'
+    )
   if len(y.shape) != 2:
-    raise NotImplementedError('The data decoder function expects `y` to be '
-                              '2D, but its shape was %s instead.' %
-                              str(y.shape))
+    raise NotImplementedError(
+        f'The data decoder function expects `y` to be 2D, but its shape was {str(y.shape)} instead.'
+    )
 
   # Upsample layer (deconvolutional, bilinear, ..).
   if decoder_type == 'deconv':
@@ -208,15 +207,15 @@ def data_decoder_fn(z,
         z, is_training=is_training, test_local_stats=test_local_stats)
     logits = tf.reshape(logits, [-1] + out_shape)  # n_out_factor in last dim
 
-  # Multiple MLP decoders, one for each component.
   elif decoder_type == 'multi':
     all_logits = []
     for k in range(n_y):
       mlp_decoding = snt.nets.MLP(
-          name='mlp_latent_decoder_' + str(k),
+          name=f'mlp_latent_decoder_{str(k)}',
           output_sizes=n_dec + [n_x * n_out_factor],
           activation=tf.nn.relu,
-          activate_final=False)
+          activate_final=False,
+      )
       logits = mlp_decoding(z)
       all_logits.append(logits)
 
@@ -224,7 +223,6 @@ def data_decoder_fn(z,
     logits = tf.einsum('ij,jik->ik', y, all_logits)
     logits = tf.reshape(logits, [-1] + out_shape)  # Back to 4D
 
-  # Single (shared among components) MLP decoder.
   elif decoder_type == 'single':
     mlp_decoding = snt.nets.MLP(
         name='mlp_latent_decoder',
@@ -234,7 +232,7 @@ def data_decoder_fn(z,
     logits = mlp_decoding(z)
     logits = tf.reshape(logits, [-1] + out_shape)  # Back to 4D
   else:
-    raise ValueError('Unknown decoder_type {}'.format(decoder_type))
+    raise ValueError(f'Unknown decoder_type {decoder_type}')
 
   return output_dist(logits)
 
@@ -315,7 +313,7 @@ class Curl(object):
       ValueError: If `sample_shape` has rank > 0 or if `sample_shape`
       is an int that is < 1.
     """
-    with tf.name_scope('{}_sample'.format(self.scope_name)):
+    with tf.name_scope(f'{self.scope_name}_sample'):
       if y is None:
         y = tf.to_float(self.compute_prior().sample(sample_shape))
 
@@ -348,10 +346,7 @@ class Curl(object):
     qz = self.infer_latent(hiddens, y_sample)
     p = self.predict(qz.sample(), y_sample)
 
-    if use_mean:
-      return p.mean()
-    else:
-      return p.sample()
+    return p.mean() if use_mean else p.sample()
 
   def log_prob(self, x):
     """Redirects to log_prob_elbo with a warning."""
@@ -385,7 +380,7 @@ class Curl(object):
     if cache_key in self._cache:
       return self._cache[cache_key]
 
-    with tf.name_scope('{}_log_prob_elbo'.format(self.scope_name)):
+    with tf.name_scope(f'{self.scope_name}_log_prob_elbo'):
 
       hiddens = self._shared_encoder(x, is_training=self._is_training)
       # 1) Compute KL[q(y|x) || p(y)] from x, and keep distribution q_y around
@@ -456,7 +451,7 @@ class Curl(object):
           logits=y_logits)
 
       # Reduce over all dimension except batch.
-      dims_x = [k for k in range(1, log_p_x.shape.ndims)]
+      dims_x = list(range(1, log_p_x.shape.ndims))
       log_p_x = reduce_op(log_p_x, dims_x, name='log_p_x')
       log_p_x_sup = reduce_op(log_p_x_sup, dims_x, name='log_p_x_sup')
 
@@ -505,15 +500,15 @@ class Curl(object):
       log_q_y = q.log_prob(y, name='log_q_y')
 
       # Reduce over all dimension except batch.
-      sum_axis_p = [k for k in range(1, log_p_y.get_shape().ndims)]
+      sum_axis_p = list(range(1, log_p_y.get_shape().ndims))
       log_p_y = tf.reduce_sum(log_p_y, sum_axis_p)
-      sum_axis_q = [k for k in range(1, log_q_y.get_shape().ndims)]
+      sum_axis_q = list(range(1, log_q_y.get_shape().ndims))
       log_q_y = tf.reduce_sum(log_q_y, sum_axis_q)
 
       kl = log_q_y - log_p_y
 
     # Reduce over all dimension except batch.
-    sum_axis_kl = [k for k in range(1, kl.get_shape().ndims)]
+    sum_axis_kl = list(range(1, kl.get_shape().ndims))
     kl = tf.reduce_sum(kl, sum_axis_kl, name='kl')
     return kl, q
 
@@ -546,15 +541,15 @@ class Curl(object):
       log_q_z = q.log_prob(z, name='log_q_z_xy')
 
       # Reduce over all dimension except batch.
-      sum_axis_p = [k for k in range(1, log_p_z.get_shape().ndims)]
+      sum_axis_p = list(range(1, log_p_z.get_shape().ndims))
       log_p_z = tf.reduce_sum(log_p_z, sum_axis_p)
-      sum_axis_q = [k for k in range(1, log_q_z.get_shape().ndims)]
+      sum_axis_q = list(range(1, log_q_z.get_shape().ndims))
       log_q_z = tf.reduce_sum(log_q_z, sum_axis_q)
 
       kl = log_q_z - log_p_z
 
     # Reduce over all dimension except batch.
-    sum_axis_kl = [k for k in range(1, kl.get_shape().ndims)]
+    sum_axis_kl = list(range(1, kl.get_shape().ndims))
     kl = tf.reduce_sum(kl, sum_axis_kl, name='kl')
     return kl, z
 
@@ -575,21 +570,20 @@ class Curl(object):
       if y is None:
         y = tf.to_float(self.infer_cluster(hiddens).mode())
 
-    if use_mean_y:
-      # If use_mean_y, then y must be probabilities
-      all_y = tf.tile(
-          tf.expand_dims(tf.one_hot(tf.range(y.shape[1]), y.shape[1]), axis=1),
-          multiples=[1, y.shape[0], 1])
-
-      # Compute z KL from x (for all possible y), and keep z's around
-      z_all = tf.map_fn(
-          fn=lambda y: self._latent_encoder(
-              hiddens, y, is_training=self._is_training).mean(),
-          elems=all_y,
-          dtype=tf.float32)
-      return tf.einsum('ij,jik->ik', y, z_all)
-    else:
+    if not use_mean_y:
       return self._latent_encoder(hiddens, y, is_training=self._is_training)
+    # If use_mean_y, then y must be probabilities
+    all_y = tf.tile(
+        tf.expand_dims(tf.one_hot(tf.range(y.shape[1]), y.shape[1]), axis=1),
+        multiples=[1, y.shape[0], 1])
+
+    # Compute z KL from x (for all possible y), and keep z's around
+    z_all = tf.map_fn(
+        fn=lambda y: self._latent_encoder(
+            hiddens, y, is_training=self._is_training).mean(),
+        elems=all_y,
+        dtype=tf.float32)
+    return tf.einsum('ij,jik->ik', y, z_all)
 
   def generate_latent(self, y):
     """Use the generative model to compute latent variable z, given a y.
@@ -758,9 +752,11 @@ class UpsampleModule(snt.AbstractModule):
     for i, (filter_i, stride_i) in enumerate(zip(conv_filters, strides), 1):
       if method != 'deconv' and stride_i > 1:
         upsample = tf.image.resize_images(
-            upsample, [stride_i * el for el in upsample.shape.as_list()[1:3]],
+            upsample,
+            [stride_i * el for el in upsample.shape.as_list()[1:3]],
             method=method,
-            name='upsample_' + str(i))
+            name=f'upsample_{str(i)}',
+        )
       upsample = self._conv_layer(
           filters=filter_i,
           kernel_size=self._kernel_size,
@@ -768,8 +764,8 @@ class UpsampleModule(snt.AbstractModule):
           use_bias=not use_bn,
           activation=self._activation,
           strides=stride_i if method == 'deconv' else 1,
-          name='upsample_conv_' + str(i))(
-              upsample)
+          name=f'upsample_conv_{str(i)}',
+      )(upsample)
       if use_bn:
         upsample = snt.BatchNorm(scale=True)(upsample, **batch_norm_args)
       if stride_i > 1:

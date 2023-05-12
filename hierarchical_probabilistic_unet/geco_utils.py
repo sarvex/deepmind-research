@@ -76,10 +76,11 @@ class LagrangeMultiplier(snt.AbstractModule):
       maximizing w.r.t. the Lagrande multipliers, hence enforcing the
       constraints.
     """
-    lagmul = snt.get_lagrange_multiplier(
-        shape=ma_constraint.shape, rate=self._rate,
-        initializer=np.ones(ma_constraint.shape))
-    return lagmul
+    return snt.get_lagrange_multiplier(
+        shape=ma_constraint.shape,
+        rate=self._rate,
+        initializer=np.ones(ma_constraint.shape),
+    )
 
 
 def _sample_gumbel(shape, eps=1e-20):
@@ -123,9 +124,9 @@ def ce_loss(logits, labels, mask=None, top_k_percentage=None,
   if mask is None:
     mask = tf.ones(shape=(t_flat.shape.as_list()[0],))
   else:
-    assert mask.shape.as_list()[:3] == labels.shape.as_list()[:3],\
-      'The loss mask shape differs from the target shape: {} vs. {}.'.format(
-          mask.shape.as_list(), labels.shape.as_list()[:3])
+    assert (
+        mask.shape.as_list()[:3] == labels.shape.as_list()[:3]
+    ), f'The loss mask shape differs from the target shape: {mask.shape.as_list()} vs. {labels.shape.as_list()[:3]}.'
     mask = tf.reshape(mask, (-1,), name='reshape_mask')
 
   n_pixels_in_batch = y_flat.shape.as_list()[0]

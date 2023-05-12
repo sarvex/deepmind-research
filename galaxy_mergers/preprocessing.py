@@ -132,8 +132,8 @@ def get_all_rescalings(images, image_width, random_centering):
   sizes = range(min_size, max_size + 2, delta_size)
   new_images = []
   for image in images:
-    for size in sizes:
-      new_images.append(resize_and_center(image, size, random_centering))
+    new_images.extend(
+        resize_and_center(image, size, random_centering) for size in sizes)
   return new_images
 
 
@@ -158,12 +158,12 @@ def get_regression_label(dataset_row, task_type):
   """Returns time-until-merger regression target given desired modeling task."""
   if task_type == losses.TASK_NORMALIZED_REGRESSION:
     return tf.dtypes.cast(dataset_row['normalized_time'], tf.float32)
-  elif task_type == losses.TASK_GROUNDED_UNNORMALIZED_REGRESSION:
+  elif (task_type == losses.TASK_GROUNDED_UNNORMALIZED_REGRESSION
+        or task_type != losses.TASK_UNNORMALIZED_REGRESSION
+        and task_type == losses.TASK_CLASSIFICATION):
     return tf.dtypes.cast(dataset_row['grounded_normalized_time'], tf.float32)
   elif task_type == losses.TASK_UNNORMALIZED_REGRESSION:
     return tf.dtypes.cast(dataset_row['unnormalized_time'], tf.float32)
-  elif task_type == losses.TASK_CLASSIFICATION:
-    return tf.dtypes.cast(dataset_row['grounded_normalized_time'], tf.float32)
   else:
     raise ValueError
 
@@ -211,7 +211,7 @@ def prepare_dataset(ds, target_size, crop_type, n_repeats, augmentations,
         image = image[
             crop_loc[0]:crop_loc[0] + crop_size[0],
             crop_loc[1]:crop_loc[1] + crop_size[1], :]
-        image = tf.image.resize(image, target_size[0:2])
+        image = tf.image.resize(image, target_size[:2])
         image.set_shape([target_size[0], target_size[1], target_size[2]])
 
       elif crop_type == CROP_TYPE_RANDOM:
@@ -252,7 +252,7 @@ def prepare_dataset(ds, target_size, crop_type, n_repeats, augmentations,
 
   if additional_features:
     additional_features = additional_features.split(',')
-    assert all([f in VALID_ADDITIONAL_FEATURES for f in additional_features])
+    assert all(f in VALID_ADDITIONAL_FEATURES for f in additional_features)
     logging.info('Running with additional features: %s.',
                  ', '.join(additional_features))
 

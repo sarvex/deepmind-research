@@ -93,12 +93,10 @@ def get_sampling_offset(sequence: tf.Tensor,
       tf.greater(sequence_length, (num_steps - 1) * stride),
       lambda: sequence_length - (num_steps - 1) * stride,
       lambda: sequence_length)
-  offset = tf.random.uniform(
-      (),
-      maxval=tf.cast(max_offset, tf.int32),
-      dtype=tf.int32,
-      seed=seed)
-  return offset
+  return tf.random.uniform((),
+                           maxval=tf.cast(max_offset, tf.int32),
+                           dtype=tf.int32,
+                           seed=seed)
 
 
 def sample_or_pad_sequence_indices(sequence: tf.Tensor,
@@ -168,8 +166,7 @@ def random_sample_sequence(sequence: tf.Tensor,
       stride=stride,
       offset=None)
   indices.set_shape((num_steps,))
-  output = tf.gather(sequence, indices)
-  return output
+  return tf.gather(sequence, indices)
 
 
 def sample_linspace_sequence(sequence: tf.Tensor,
@@ -200,22 +197,19 @@ def sample_linspace_sequence(sequence: tf.Tensor,
   offsets = tf.linspace(0.0, tf.cast(max_offset, tf.float32), num_windows)
   offsets = tf.cast(offsets, tf.int32)
 
-  all_indices = []
-  for i in range(num_windows):
-    all_indices.append(
-        sample_or_pad_sequence_indices(
-            sequence=sequence,
-            num_steps=num_steps,
-            is_training=False,
-            repeat_sequence=True,  # Will repeat the sequence if request more.
-            stride=stride,
-            offset=offsets[i]))
-
+  all_indices = [
+      sample_or_pad_sequence_indices(
+          sequence=sequence,
+          num_steps=num_steps,
+          is_training=False,
+          repeat_sequence=True,  # Will repeat the sequence if request more.
+          stride=stride,
+          offset=offsets[i],
+      ) for i in range(num_windows)
+  ]
   indices = tf.concat(all_indices, axis=0)
   indices.set_shape((num_windows * num_steps,))
-  output = tf.gather(sequence, indices)
-
-  return output
+  return tf.gather(sequence, indices)
 
 
 def resize_smallest(frames: tf.Tensor, min_resize: int) -> tf.Tensor:
@@ -306,8 +300,7 @@ def compute_accuracy_metrics(pred, gt, prefix=''):
   top5_pred = order_pred[:, -5:]
   top1_acc = np.mean(top1_pred == gt)
   top5_acc = np.mean(np.max(top5_pred == gt, 1))
-  return {prefix + 'top1': top1_acc,
-          prefix + 'top5': top5_acc}
+  return {f'{prefix}top1': top1_acc, f'{prefix}top5': top5_acc}
 
 
 def forward_fn(images: jnp.ndarray,

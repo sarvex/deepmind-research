@@ -118,7 +118,7 @@ class Scavenger(auto_reset_environment.Base):
         self._walls.append(new_pos)
 
     # Objects.
-    self._objects = dict()
+    self._objects = {}
     for _ in range(self._num_init_objects):
       while True:
         new_pos = _random_pos(self._arena_size)
@@ -149,7 +149,7 @@ class Scavenger(auto_reset_environment.Base):
     elif action == Action.RIGHT:
       new_player_pos = (self._player_pos[0] + 1, self._player_pos[1])
     else:
-      raise ValueError("Invalid action `{}`".format(action))
+      raise ValueError(f"Invalid action `{action}`")
 
     # Toroidal.
     new_player_pos = (

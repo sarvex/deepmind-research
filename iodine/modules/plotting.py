@@ -122,7 +122,7 @@ def example_plot(rinfo,
 
   if column_titles:
     labels = ["Image", "Recons.", "Mask"
-             ] + ["Component {}".format(k + 1) for k in range(K)]
+              ] + [f"Component {k + 1}" for k in range(K)]
     for ax, title in zip(axes, labels):
       ax.set_title(title)
   plt.subplots_adjust(hspace=0.03, wspace=0.035)
@@ -146,7 +146,7 @@ def iterations_plot(rinfo, b=0, mask_components=False, size=2):
   for t in range(T):
     show_img(recons[t, 0], ax=axes[t, 0])
     show_mask(pred_mask[t, ..., 0], ax=axes[t, 1])
-    axes[t, 0].set_ylabel("iter {}".format(t))
+    axes[t, 0].set_ylabel(f"iter {t}")
     for k in range(K):
       mask = pred_mask[t, k] if mask_components else None
       show_img(components[t, k], ax=axes[t, k + 2], color=colors[k], mask=mask)
@@ -159,11 +159,10 @@ def iterations_plot(rinfo, b=0, mask_components=False, size=2):
   vmax = np.max(pred_mask_logits[T - 1])
 
   for k in range(K):
-    axes[0, k + 2].set_title("Component {}".format(k + 1))  # , color=colors[k])
+    axes[0, k + 2].set_title(f"Component {k + 1}")
     show_mat(
         pred_mask_logits[T - 1, k], ax=axes[T, k + 2], vmin=vmin, vmax=vmax)
-    axes[T, k + 2].set_xlabel(
-        "Mask Logits for\nComponent {}".format(k + 1))  # , color=colors[k])
+    axes[T, k + 2].set_xlabel(f"Mask Logits for\nComponent {k + 1}")
   axes[T, 0].set_xlabel("Input Image")
   axes[T, 1].set_xlabel("Ground Truth Mask")
 
@@ -220,7 +219,7 @@ def inputs_plot(rinfo, b=0, t=0, size=2):
     else:
       axes[r, K].set_visible(False)
   for k in range(K):
-    axes[0, k].set_title("Component {}".format(k + 1))  # , color=colors[k])
+    axes[0, k].set_title(f"Component {k + 1}")
 
   plt.subplots_adjust(hspace=0.05, wspace=0.05)
   return fig

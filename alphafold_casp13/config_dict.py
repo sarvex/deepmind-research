@@ -30,10 +30,7 @@ class ConfigDict(dict):
       self._add(key, value)
 
   def _add(self, key, value):
-    if isinstance(value, dict):
-      self[key] = ConfigDict(value)
-    else:
-      self[key] = value
+    self[key] = ConfigDict(value) if isinstance(value, dict) else value
 
   def __getattr__(self, attr):
     try:

@@ -138,8 +138,7 @@ def _run_evaluation(
     num_crops += num_crops_local
 
     # Save the output files.
-    filename = os.path.join(output_dir,
-                            'pickle_files', '%s.pickle' % filebase)
+    filename = os.path.join(output_dir, 'pickle_files', f'{filebase}.pickle')
     distogram_io.save_distance_histogram(
         filename, softmax_probs, filebase, sequence,
         min_range=min_range, max_range=max_range, num_bins=num_bins)
@@ -176,8 +175,10 @@ def compute_one_prediction(
   num_crops_local = 0
   debug_steps = 0
   start = time.time()
-  output_fetches = {'probs': experiment.eval_probs}
-  output_fetches['softmax_probs'] = experiment.eval_probs_softmax
+  output_fetches = {
+      'probs': experiment.eval_probs,
+      'softmax_probs': experiment.eval_probs_softmax,
+  }
   # Add the auxiliary outputs if present.
   experiment.model.update_crop_fetches(output_fetches)
   # Get data.

@@ -61,14 +61,11 @@ def _read_edge_data(path):
 
 
 def _build_coo(edges_data, use_boolean=False):
-  if use_boolean:
-    mat_coo = scipy.sparse.coo_matrix(
-        (np.ones_like(edges_data[1, :],
-                      dtype=bool), (edges_data[0, :], edges_data[1, :])))
-  else:
-    mat_coo = scipy.sparse.coo_matrix(
-        (edges_data[1, :], (edges_data[0, :], edges_data[1, :])))
-  return mat_coo
+  return (scipy.sparse.coo_matrix((
+      np.ones_like(edges_data[1, :], dtype=bool),
+      (edges_data[0, :], edges_data[1, :]),
+  )) if use_boolean else scipy.sparse.coo_matrix(
+      (edges_data[1, :], (edges_data[0, :], edges_data[1, :]))))
 
 
 def _get_output_paths(directory, content_names, use_boolean):

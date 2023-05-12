@@ -44,17 +44,17 @@ class BoxWithSites(Box):
     corner_positions = itertools.product([half_lengths[0], -half_lengths[0]],
                                          [half_lengths[1], -half_lengths[1]],
                                          [half_lengths[2], -half_lengths[2]])
-    corner_sites = []
-    for i, corner_pos in enumerate(corner_positions):
-      corner_sites.append(
-          self.mjcf_model.worldbody.add(
-              'site',
-              type='sphere',
-              name='corner_{}'.format(i),
-              size=[0.1],
-              pos=corner_pos,
-              rgba=[1, 0, 0, 1.0],
-              group=composer.SENSOR_SITES_GROUP))
+    corner_sites = [
+        self.mjcf_model.worldbody.add(
+            'site',
+            type='sphere',
+            name=f'corner_{i}',
+            size=[0.1],
+            pos=corner_pos,
+            rgba=[1, 0, 0, 1.0],
+            group=composer.SENSOR_SITES_GROUP,
+        ) for i, corner_pos in enumerate(corner_positions)
+    ]
     self._corner_sites = tuple(corner_sites)
 
   @property
