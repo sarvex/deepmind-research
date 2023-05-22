@@ -96,7 +96,7 @@ PyYAML==5.3.1
 reboot-enforcer==0.1
 reconfigure==0.1.81
 rekey==1
-requests==2.23.0
+requests==2.31.0
 scour==0.37
 SecretStorage==3.1.2
 setproctitle==1.1.10
